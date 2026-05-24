@@ -60,7 +60,7 @@ export function CameroonCorpusRoadmap({
   cameroonStats,
   className,
 }: CameroonCorpusRoadmapProps) {
-  const { available, planned, total, pctAvailable } = cameroonCorpusProgress();
+  const { available, planned, pctAvailable } = cameroonCorpusProgress();
   const { preview: plannedPreview, more: plannedMore } = splitCameroonPlannedCorpus();
   const indexed = cameroonStats.sources > 0;
 
