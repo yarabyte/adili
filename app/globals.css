@@ -2,26 +2,251 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+    /* Marque — Encre / Bleu justice / Or royal / Parchemin + accents juridiques */
+    --brand-ink: 213 53% 11%;
+    --brand-justice: 217 57% 26%;
+    --brand-justice-soft: 217 53% 38%;
+    --brand-gold: 43 89% 38%;
+    --brand-gold-soft: 43 65% 56%;
+    --brand-parchment: 37 39% 94%;
+    --brand-parchment-dark: 39 35% 88%;
+    --brand-crimson: 0 70% 32%;
+    --brand-sage: 134 26% 39%;
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+    --background: 37 39% 94%;
+    --foreground: 213 53% 11%;
+    --card: 40 35% 97%;
+    --card-foreground: 213 53% 11%;
+    --popover: 40 35% 97%;
+    --popover-foreground: 213 53% 11%;
+    --primary: 217 57% 26%;
+    --primary-foreground: 37 45% 97%;
+    --secondary: 217 28% 90%;
+    --secondary-foreground: 213 53% 11%;
+    --muted: 37 22% 88%;
+    --muted-foreground: 213 22% 38%;
+    --accent: 43 48% 90%;
+    --accent-foreground: 43 75% 22%;
+    --destructive: 0 72% 45%;
+    --destructive-foreground: 37 45% 98%;
+    --border: 37 18% 85%;
+    --input: 37 18% 85%;
+    --ring: 43 89% 38%;
+    --radius: 0.5rem;
+    --chart-1: 217 57% 35%;
+    --chart-2: 43 89% 38%;
+    --chart-3: 213 53% 20%;
+    --chart-4: 37 35% 70%;
+    --chart-5: 217 40% 50%;
+    --sidebar: 40 30% 96%;
+    --sidebar-foreground: 213 53% 11%;
+    --sidebar-primary: 217 57% 26%;
+    --sidebar-primary-foreground: 37 45% 97%;
+    --sidebar-accent: 43 40% 92%;
+    --sidebar-accent-foreground: 213 53% 11%;
+    --sidebar-border: 37 18% 86%;
+    --sidebar-ring: 43 89% 38%;
+  }
+
+  .dark {
+    --background: 213 48% 8%;
+    --foreground: 37 35% 94%;
+    --card: 213 45% 11%;
+    --card-foreground: 37 35% 94%;
+    --popover: 213 45% 11%;
+    --popover-foreground: 37 35% 94%;
+    --primary: 37 35% 94%;
+    --primary-foreground: 213 53% 11%;
+    --secondary: 217 35% 18%;
+    --secondary-foreground: 37 35% 94%;
+    --muted: 217 28% 16%;
+    --muted-foreground: 37 15% 72%;
+    --accent: 43 55% 20%;
+    --accent-foreground: 43 75% 88%;
+    --destructive: 0 62% 40%;
+    --destructive-foreground: 37 45% 98%;
+    --border: 217 28% 18%;
+    --input: 217 28% 18%;
+    --ring: 43 75% 48%;
+    --chart-1: 217 55% 55%;
+    --chart-2: 43 80% 50%;
+    --chart-3: 37 40% 80%;
+    --chart-4: 213 40% 40%;
+    --chart-5: 217 45% 35%;
+    --sidebar: 213 50% 9%;
+    --sidebar-foreground: 37 35% 94%;
+    --sidebar-primary: 43 75% 48%;
+    --sidebar-primary-foreground: 213 53% 11%;
+    --sidebar-accent: 217 30% 16%;
+    --sidebar-accent-foreground: 37 35% 94%;
+    --sidebar-border: 217 28% 16%;
+    --sidebar-ring: 43 75% 48%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-heading tracking-tight text-foreground;
+  }
+
+  ::selection {
+    background-color: hsl(var(--brand-gold) / 0.22);
+    color: hsl(var(--brand-ink));
+  }
 }
 
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
+  @keyframes adili-cite-pulse {
+    0% {
+      box-shadow: 0 0 0 0 hsl(var(--brand-gold) / 0.55);
+      border-color: hsl(var(--brand-gold) / 0.7);
+    }
+    60% {
+      box-shadow: 0 0 0 10px hsl(var(--brand-gold) / 0);
+      border-color: hsl(var(--brand-gold) / 0.5);
+    }
+    100% {
+      box-shadow: 0 0 0 0 hsl(var(--brand-gold) / 0);
+      border-color: hsl(var(--brand-justice) / 0.12);
+    }
+  }
+
+  .is-cited {
+    animation: adili-cite-pulse 1.8s ease-out;
+    border-color: hsl(var(--brand-gold) / 0.55);
+  }
+
+  /* Apparition douce au chargement (hero) ─────────────────────────── */
+  @keyframes adili-fade-up {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 16px, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  .adili-fade-up {
+    animation: adili-fade-up 700ms ease-out both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .adili-fade-up {
+      animation: none;
+    }
+    html {
+      scroll-behavior: auto;
+    }
   }
 }
+
+/* ─── Éditeur TipTap (module Affaires) ───────────────────────────── */
+.tiptap-document .ProseMirror {
+  @apply min-h-[400px] text-[15px] leading-relaxed text-foreground outline-none;
+  font-feature-settings: "kern", "liga", "calt";
+}
+
+.tiptap-document .ProseMirror p {
+  @apply my-3;
+}
+
+.tiptap-document .ProseMirror h1 {
+  @apply mb-3 mt-6 font-heading text-2xl font-semibold text-foreground;
+}
+
+.tiptap-document .ProseMirror h2 {
+  @apply mb-2 mt-5 font-heading text-xl font-semibold text-foreground;
+}
+
+.tiptap-document .ProseMirror h3 {
+  @apply mb-2 mt-4 font-heading text-lg font-semibold text-foreground;
+}
+
+.tiptap-document .ProseMirror ul {
+  @apply my-3 list-disc pl-6;
+}
+
+.tiptap-document .ProseMirror ol {
+  @apply my-3 list-decimal pl-6;
+}
+
+.tiptap-document .ProseMirror li > p {
+  @apply my-1;
+}
+
+.tiptap-document .ProseMirror blockquote {
+  @apply my-4 border-l-2 border-brand-justice/30 pl-4 italic text-muted-foreground;
+}
+
+.tiptap-document .ProseMirror code {
+  @apply rounded bg-muted px-1 py-0.5 text-[0.9em];
+}
+
+.tiptap-document .ProseMirror pre {
+  @apply my-4 overflow-x-auto rounded-lg bg-brand-ink/95 p-4 text-[13px] text-brand-parchment;
+}
+
+.tiptap-document .ProseMirror pre code {
+  @apply bg-transparent p-0 text-inherit;
+}
+
+/* Placeholder de tiptap (extension-placeholder) */
+.tiptap-document .ProseMirror p.is-editor-empty:first-child::before {
+  @apply pointer-events-none text-muted-foreground;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+}
+
+/* ─── Citation inline (mark `citation`) ──────────────────────────── */
+.tiptap-document .adili-citation,
+.adili-citation {
+  @apply inline-flex items-baseline gap-0.5 rounded border border-brand-justice/25 bg-brand-justice/10 px-1 py-px text-[0.92em] font-medium text-brand-justice;
+  /* Marqueur subtil "Art." devant la chip */
+  cursor: help;
+}
+
+.tiptap-document .adili-citation::before {
+  content: "§";
+  @apply mr-0.5 text-[0.85em] text-brand-justice/60;
+}
+
+.tiptap-document .adili-citation:hover {
+  @apply bg-brand-justice/15;
+}
+
+/* ─── Citation bloc (node `citationBlock`) ───────────────────────── */
+.tiptap-document .adili-citation-block,
+.adili-citation-block {
+  @apply relative my-4 rounded-r-md border-l-4 border-brand-gold/70 bg-brand-gold/5 py-3 pl-5 pr-4 text-[14.5px] leading-relaxed text-foreground;
+}
+
+.tiptap-document .adili-citation-block::before {
+  content: attr(data-article-label);
+  @apply mb-1 block text-[11px] font-semibold uppercase tracking-wide text-brand-gold;
+}
+
+.tiptap-document .adili-citation-block p {
+  @apply my-1 italic text-foreground/90;
+}
+
+.tiptap-document .adili-citation-block p:first-of-type {
+  @apply mt-0;
+}
+
+.tiptap-document .adili-citation-block p:last-of-type {
+  @apply mb-0;
+}
+

@@ -1,0 +1,280 @@
+/* ─── Compte rendu — styles PDF (complète print.css) ───────────── */
+
+.print-cr__band {
+  display: flex;
+  height: 2.5pt;
+  margin: 0 0 7mm 0;
+  border-radius: 0;
+  overflow: hidden;
+}
+
+.print-cr__band-navy {
+  flex: 0 0 32mm;
+  background: #1d3260;
+}
+
+.print-cr__band-gold {
+  flex: 1;
+  background: linear-gradient(90deg, #c8b878 0%, #e8d9a8 100%);
+}
+
+.print-cr__dossier {
+  font-family: "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+  font-size: 9pt;
+  color: #4b576a;
+  margin: 0 0 2.5mm 0;
+  line-height: 1.45;
+}
+
+.print-cr__dossier-ref {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #1d3260;
+}
+
+.print-cr__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2mm;
+  margin: 3mm 0 0 0;
+  font-family: "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+}
+
+.print-cr__badge {
+  display: inline-block;
+  padding: 1mm 2.5mm;
+  border-radius: 1mm;
+  font-size: 7.5pt;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 0.5pt solid;
+}
+
+.print-cr__badge--type {
+  color: #1d3260;
+  background: #f4f6fa;
+  border-color: #1d3260;
+}
+
+.print-cr__badge--finalise {
+  color: #334155;
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.print-cr__badge--valide {
+  color: #14532d;
+  background: #ecfdf5;
+  border-color: #6ee7b7;
+}
+
+.print-cr__badge--en_revue {
+  color: #78350f;
+  background: #fffbeb;
+  border-color: #fcd34d;
+}
+
+.print-cr__badge--brouillon {
+  color: #4b576a;
+  background: #faf6ec;
+  border-color: #c8b878;
+}
+
+.print-cr__badge--rejete {
+  color: #9f1239;
+  background: #fff1f2;
+  border-color: #fda4af;
+}
+
+/* ─── Synthèse événement ───────────────────────────────────────── */
+.print-cr__summary {
+  margin: 0 0 7mm 0;
+  padding: 4mm 5mm;
+  border: 0.5pt solid #d7c47a;
+  border-left: 2pt solid #1d3260;
+  background: #faf8f3;
+  page-break-inside: avoid;
+}
+
+.print-cr__summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2.5mm 6mm;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+  font-size: 9.5pt;
+  line-height: 1.4;
+}
+
+.print-cr__summary-grid li {
+  margin: 0;
+}
+
+.print-cr__summary-grid li.print-cr__summary-full {
+  grid-column: 1 / -1;
+}
+
+.print-cr__summary-label {
+  display: block;
+  font-size: 7.5pt;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8b6914;
+  margin-bottom: 0.5mm;
+}
+
+.print-cr__summary-value {
+  color: #0a162a;
+  font-weight: 500;
+}
+
+/* ─── Sections structurées ─────────────────────────────────────── */
+.print-cr__sections {
+  margin: 0 0 8mm 0;
+}
+
+.print-cr__section {
+  margin: 0 0 5mm 0;
+  padding: 4mm 5mm 4mm 5mm;
+  border: 0.5pt solid #e8e2d4;
+  background: #ffffff;
+  page-break-inside: avoid;
+}
+
+.print-cr__section-title {
+  font-family: "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+  font-size: 8.5pt;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #1d3260;
+  margin: 0 0 3mm 0;
+  padding-bottom: 2mm;
+  border-bottom: 0.5pt solid #e8e2d4;
+}
+
+.print-cr__section-body {
+  font-size: 10.5pt;
+  line-height: 1.5;
+  color: #0a162a;
+}
+
+.print-cr__section-body p {
+  margin: 0;
+  font-style: italic;
+  color: #6b7280;
+}
+
+.print-cr__section-body ul {
+  margin: 0;
+  padding: 0 0 0 5mm;
+  list-style: none;
+}
+
+.print-cr__section-body li {
+  position: relative;
+  margin: 0 0 2mm 0;
+  padding-left: 3.5mm;
+  text-align: justify;
+}
+
+.print-cr__section-body li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 1.2pt;
+  height: 1.2pt;
+  border-radius: 50%;
+  background: #c8b878;
+}
+
+.print-cr__section-body li:last-child {
+  margin-bottom: 0;
+}
+
+.print-cr__participant-name {
+  font-weight: 600;
+  color: #0a162a;
+}
+
+.print-cr__participant-meta {
+  font-style: italic;
+  font-weight: 400;
+  color: #4b576a;
+  font-size: 9.5pt;
+}
+
+.print-cr__action-tag {
+  font-family: "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+  font-size: 8pt;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #1d3260;
+}
+
+.print-cr__action-tag--decision {
+  color: #1d3260;
+}
+
+.print-cr__action-tag--action {
+  color: #8b6914;
+}
+
+.print-cr__action-done {
+  font-size: 8.5pt;
+  font-weight: 600;
+  color: #14532d;
+}
+
+.print-cr__action-deadline {
+  display: block;
+  margin-top: 0.5mm;
+  font-size: 9pt;
+  font-style: italic;
+  color: #4b576a;
+}
+
+.print-cr__piece-sens {
+  font-weight: 600;
+  color: #1d3260;
+}
+
+/* ─── Corps rédigé ─────────────────────────────────────────────── */
+.print-cr__body-heading {
+  font-family: "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+  font-size: 8.5pt;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #1d3260;
+  margin: 0 0 4mm 0;
+  padding-bottom: 2mm;
+  border-bottom: 0.5pt solid #1d3260;
+}
+
+.print-cr__body-empty {
+  text-align: center;
+  font-style: italic;
+  color: #9ca3af;
+  padding: 6mm 0;
+}
+
+.print-doc__header.print-cr__header {
+  border-bottom: none;
+  padding-bottom: 4mm;
+  margin-bottom: 0;
+}
+
+.print-doc__header.print-cr__header::after {
+  display: none;
+}
+
+.print-cr__author {
+  margin-top: 2mm !important;
+}

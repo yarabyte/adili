@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>Confirmez votre nouvelle adresse — Adili</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f6f3eb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#1f2937;line-height:1.55;">
+    <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:transparent;opacity:0;">
+      Confirmez votre nouvelle adresse email pour votre compte Adili.
+    </div>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f6f3eb;padding:32px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background:#ffffff;border:1px solid #dcd2bb;border-radius:16px;overflow:hidden;">
+
+            <tr>
+              <td style="background:#0c1a2b;padding:20px 28px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td style="font-family:Georgia,'Times New Roman',serif;font-size:20px;letter-spacing:0.18em;font-weight:600;color:#ffffff;">
+                      ADILI
+                    </td>
+                    <td align="right" style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#e6c474;font-weight:600;">
+                      LegalTech OHADA
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:36px 32px 28px;">
+                <p style="margin:0 0 8px;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#b3811a;font-weight:700;">
+                  Mise à jour du compte
+                </p>
+                <h1 style="margin:0 0 16px;font-family:Georgia,'Times New Roman',serif;font-size:26px;line-height:1.25;color:#0c1a2b;">
+                  Confirmez votre nouvelle adresse email
+                </h1>
+
+                <p style="margin:0 0 14px;font-size:15px;color:#1f2937;">
+                  Vous avez demandé à utiliser <strong>{{ .NewEmail }}</strong> comme nouvelle adresse de connexion pour votre compte Adili.
+                </p>
+                <p style="margin:0 0 22px;font-size:15px;color:#1f2937;">
+                  Cliquez sur le bouton ci-dessous pour confirmer ce changement.
+                </p>
+
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 22px;">
+                  <tr>
+                    <td>
+                      <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=email_change&amp;next=/app/parametres" style="display:inline-block;background:#0c1a2b;color:#ffffff;text-decoration:none;padding:14px 24px;border-radius:10px;font-weight:600;font-size:15px;border:1px solid #0c1a2b;">
+                        Confirmer le changement d'email
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+
+                <p style="margin:0 0 24px;font-size:13px;color:#6b7280;">
+                  Si le bouton ne fonctionne pas, relancez le changement depuis
+                  <a href="{{ .SiteURL }}/app/parametres" style="color:#1f3a6a;text-decoration:underline;">{{ .SiteURL }}/app/parametres</a>.
+                  Ce lien est à usage unique et expire rapidement.
+                </p>
+
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #dcd2bb;margin-top:8px;">
+                  <tr>
+                    <td style="padding:18px 0 0;">
+                      <p style="margin:0 0 6px;font-size:12px;color:#6b7280;">
+                        Tant que vous n'aurez pas cliqué sur ce lien, votre adresse actuelle <strong style="color:#1f2937;">{{ .Email }}</strong> reste utilisée pour vous connecter.
+                      </p>
+                      <p style="margin:0;font-size:12px;color:#6b7280;">
+                        Vous n'avez pas demandé ce changement&nbsp;? Ignorez ce message ou contactez immédiatement le support.
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="background:#f4ede0;padding:18px 28px;text-align:center;">
+                <p style="margin:0;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#1f3a6a;font-weight:600;">
+                  Adili — Recherche OHADA assistée par IA
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

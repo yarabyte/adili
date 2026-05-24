@@ -1,0 +1,113 @@
+{
+  "reference": "OHADA",
+  "documents": [
+    {
+      "file": "AUA-1999_fr.pdf",
+      "code": "AUA-1999",
+      "title": "Acte Uniforme relatif au droit d'arbitrage",
+      "reference": "1999"
+    },
+    {
+      "file": "AUA-2017_fr.pdf",
+      "code": "AUA-2017",
+      "title": "Acte Uniforme relatif au droit de l'arbitrage",
+      "reference": "2017"
+    },
+    {
+      "file": "AUCE-2000_fr.pdf",
+      "code": "AUCE-2000",
+      "title": "Acte uniforme portant organisation et harmonisation des comptabilités des entreprises",
+      "reference": "2000"
+    },
+    {
+      "file": "AUCTMR-2003_fr.pdf",
+      "code": "AUCTMR-2003",
+      "title": "Acte uniforme relatif aux contrats de transport de marchandises par route",
+      "reference": "2003"
+    },
+    {
+      "file": "AUDCG-1997_fr.pdf",
+      "code": "AUDCG-1997",
+      "title": "Acte uniforme relatif au droit commercial général",
+      "reference": "1997"
+    },
+    {
+      "file": "AUDCG-2010_fr.pdf",
+      "code": "AUDCG-2010",
+      "title": "Acte uniforme révisé portant sur le droit commercial général",
+      "reference": "2010"
+    },
+    {
+      "file": "AUDCIF-2017_fr.pdf",
+      "code": "AUDCIF-2017",
+      "title": "Acte uniforme relatif au droit comptable et à l'information financière",
+      "reference": "2017"
+    },
+    {
+      "file": "AUM-2017_fr.pdf",
+      "code": "AUM-2017",
+      "title": "Acte uniforme relatif à la médiation",
+      "reference": "2017"
+    },
+    {
+      "file": "AUPCAP-1998_fr.pdf",
+      "code": "AUPCAP-1998",
+      "title": "Acte uniforme portant organisation des procédures collectives d'apurement du passif",
+      "reference": "1998"
+    },
+    {
+      "file": "AUPCAP-2015_fr.pdf",
+      "code": "AUPCAP-2015",
+      "title": "Acte uniforme portant organisation des procédures collectives d'apurement du passif",
+      "reference": "2015"
+    },
+    {
+      "file": "AUPSRVE-1998_fr.pdf",
+      "code": "AUPSRVE-1998",
+      "title": "Acte uniforme portant organisation des procédures simplifiées de recouvrement et des voies d'exécution",
+      "reference": "1998"
+    },
+    {
+      "file": "AUPSRVE-2023_fr.pdf",
+      "code": "AUPSRVE-2023",
+      "title": "Acte uniforme portant organisation des procédures simplifiées de recouvrement et des voies d'exécution",
+      "reference": "2023"
+    },
+    {
+      "file": "AUS-1997_fr.pdf",
+      "code": "AUS-1997",
+      "title": "Acte uniforme portant organisation des sûretés",
+      "reference": "1997"
+    },
+    {
+      "file": "AUS-2010_fr.pdf",
+      "code": "AUS-2010",
+      "title": "Acte uniforme portant organisation des sûretés",
+      "reference": "2010"
+    },
+    {
+      "file": "AUSCGIE-1997_fr.pdf",
+      "code": "AUSCGIE-1997",
+      "title": "Acte uniforme relatif au droit des sociétés commerciales et du groupement d'intérêt économique",
+      "reference": "1997"
+    },
+    {
+      "file": "AUSCGIE-2014_fr.pdf",
+      "code": "AUSCGIE-2014",
+      "title": "Acte uniforme relatif au droit des sociétés commerciales et du groupement d'intérêt économique",
+      "reference": "2014"
+    },
+    {
+      "file": "AUSCOOP-2010_fr.pdf",
+      "code": "AUSCOOP-2010",
+      "title": "Acte uniforme relatif au droit des sociétés coopératives",
+      "reference": "2010"
+    },
+    {
+      "file": "SYCEBNL-2022_fr.pdf",
+      "code": "SYCEBNL-2022",
+      "title": "Acte uniforme relatif au système comptable des entités à but non lucratif",
+      "reference": "2022"
+    }
+  ]
+}

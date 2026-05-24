@@ -1,0 +1,31 @@
+{
+  "documents": [
+    {
+      "file": "code-penal-cameroun.pdf",
+      "code": "CP-CM",
+      "title": "Code pénal de la République du Cameroun",
+      "reference": "Loi n° 2016/007 du 12 juillet 2016",
+      "country": "CM",
+      "countryLabel": "Cameroun",
+      "documentKind": "code_penal"
+    },
+    {
+      "file": "code-de-procedure-penale-cameroun.pdf",
+      "code": "CPP-CM",
+      "title": "Code de procédure pénale de la République du Cameroun",
+      "reference": "Loi n° 2005/007 du 27 juillet 2005",
+      "country": "CM",
+      "countryLabel": "Cameroun",
+      "documentKind": "code_procedure_penale"
+    },
+    {
+      "file": "code-civil-camerounais.pdf",
+      "code": "CPC-CM",
+      "title": "Code de procédure civile de la République du Cameroun",
+      "reference": "Arrêté du 16 décembre 1954 (Journal officiel)",
+      "country": "CM",
+      "countryLabel": "Cameroun",
+      "documentKind": "code_procedure_civile"
+    }
+  ]
+}
