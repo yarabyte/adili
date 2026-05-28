@@ -26,6 +26,42 @@
       "country": "CM",
       "countryLabel": "Cameroun",
       "documentKind": "code_procedure_civile"
+    },
+    {
+      "file": "loi-activite-commerciale.pdf",
+      "code": "LAC-CM",
+      "title": "Loi régissant l'activité commerciale au Cameroun",
+      "reference": "Loi n° 2015/018 du 21 décembre 2015",
+      "country": "CM",
+      "countryLabel": "Cameroun",
+      "documentKind": "loi_activite_commerciale"
+    },
+    {
+      "file": "loi-code-travail.pdf",
+      "code": "CT-CM",
+      "title": "Code du travail du Cameroun",
+      "reference": "Loi n° 92/007 du 14 août 1992",
+      "country": "CM",
+      "countryLabel": "Cameroun",
+      "documentKind": "code_travail"
+    },
+    {
+      "file": "constitutioncameroun.pdf",
+      "code": "CONST-CM",
+      "title": "Constitution de la République du Cameroun (texte révisé)",
+      "reference": "Loi n° 96/06 du 18 janvier 1996, modifiée par la loi n° 2008/001 du 14 avril 2008",
+      "country": "CM",
+      "countryLabel": "Cameroun",
+      "documentKind": "constitution"
+    },
+    {
+      "file": "cgi.pdf",
+      "code": "CGI-CM",
+      "title": "Code général des impôts du Cameroun",
+      "reference": "Version consolidée mise à jour au 1er janvier 2024",
+      "country": "CM",
+      "countryLabel": "Cameroun",
+      "documentKind": "code_general_impots"
     }
   ]
 }

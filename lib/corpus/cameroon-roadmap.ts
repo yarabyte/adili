@@ -16,17 +16,31 @@ export const CAMEROON_CORPUS_AVAILABLE: readonly CameroonCorpusEntry[] = [
     title: "Code de procédure civile",
     detail: "code-civil-camerounais.pdf — procédure civile (pas le code civil matière)",
   },
+  {
+    title: "Loi régissant l'activité commerciale au Cameroun",
+    detail: "loi-activite-commerciale.pdf — Loi n° 2015/018 du 21 décembre 2015",
+  },
+  {
+    title: "Code du travail",
+    detail: "loi-code-travail.pdf — Loi n° 92/007 du 14 août 1992",
+  },
+  {
+    title: "Constitution de la République du Cameroun",
+    detail:
+      "constitutioncameroun.pdf — Loi n° 96/06 du 18 janvier 1996, modifiée par la loi n° 2008/001 du 14 avril 2008",
+  },
+  {
+    title: "Code général des impôts",
+    detail: "cgi.pdf — Version consolidée mise à jour au 1er janvier 2024",
+  },
 ] as const;
 
 /** Prochaines intégrations — objectif produit. */
 export const CAMEROON_CORPUS_PLANNED: readonly CameroonCorpusEntry[] = [
-  { title: "Code du travail", detail: "Version consolidée / Journal officiel" },
   {
     title: "Code civil",
     detail: "Texte de droit civil matière, distinct du CPC",
   },
-  { title: "Constitution de la République du Cameroun" },
-  { title: "Code général des impôts", detail: "CGI" },
   {
     title: "Code de commerce national",
     detail: "Si texte distinct des actes uniformes OHADA",
