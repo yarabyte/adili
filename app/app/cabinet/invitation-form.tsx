@@ -45,7 +45,7 @@ export function InvitationForm() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="role">Rôle</Label>
+          <Label htmlFor="role">Rôle cabinet</Label>
           <select
             id="role"
             name="role"

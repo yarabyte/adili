@@ -13,6 +13,7 @@ import {
   type TitreProfessionnel,
 } from "@/lib/constants/titres-professionnels";
 import { barreauFieldDefault, DEFAULT_BARREAU } from "@/lib/constants/barreau";
+import { cn } from "@/lib/utils";
 import {
   removeMember,
   updateMemberDetails,
@@ -32,7 +33,39 @@ const ROLE_LABEL: Record<Role, string> = {
 };
 
 const selectClassName =
-  "h-8 rounded-md border border-input bg-transparent px-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-wait disabled:opacity-60";
+  "h-9 w-full rounded-md border border-input bg-background px-2.5 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-wait disabled:opacity-60";
+
+function MemberBadge({
+  children,
+  variant = "default",
+}: {
+  children: React.ReactNode;
+  variant?: "default" | "gold" | "muted";
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium",
+        variant === "gold" &&
+          "border-brand-gold/35 bg-brand-gold/10 uppercase tracking-wider text-brand-ink",
+        variant === "muted" &&
+          "border-brand-justice/15 bg-brand-parchment-dark/50 text-brand-ink",
+        variant === "default" &&
+          "border-brand-justice/20 bg-background text-foreground"
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+      {children}
+    </span>
+  );
+}
 
 function RoleSelect({
   currentRole,
@@ -64,11 +97,7 @@ function RoleSelect({
   );
 }
 
-function TitreSelect({
-  currentTitre,
-}: {
-  currentTitre: TitreProfessionnel | "";
-}) {
+function TitreSelect({ currentTitre }: { currentTitre: TitreProfessionnel | "" }) {
   const { pending } = useFormStatus();
 
   return (
@@ -78,16 +107,14 @@ function TitreSelect({
       aria-label="Titre professionnel"
       disabled={pending}
       onChange={(e) => e.currentTarget.form?.requestSubmit()}
-      className={`${selectClassName} min-w-[7.5rem]`}
+      className={selectClassName}
     >
-      <option value="">— Titre —</option>
-      {(Object.keys(TITRES_PROFESSIONNELS) as TitreProfessionnel[]).map(
-        (t) => (
-          <option key={t} value={t}>
-            {TITRES_PROFESSIONNELS[t]}
-          </option>
-        )
-      )}
+      <option value="">Non renseigné</option>
+      {(Object.keys(TITRES_PROFESSIONNELS) as TitreProfessionnel[]).map((t) => (
+        <option key={t} value={t}>
+          {TITRES_PROFESSIONNELS[t]}
+        </option>
+      ))}
     </select>
   );
 }
@@ -109,7 +136,7 @@ function RemoveButton({ memberLabel }: { memberLabel: string }) {
           e.preventDefault();
         }
       }}
-      className="border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+      className="h-9 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
       aria-label={`Retirer ${memberLabel} du cabinet`}
     >
       {pending ? (
@@ -117,7 +144,7 @@ function RemoveButton({ memberLabel }: { memberLabel: string }) {
       ) : (
         <UserMinus className="h-4 w-4" aria-hidden />
       )}
-      <span className="hidden sm:inline">Retirer</span>
+      Retirer
     </Button>
   );
 }
@@ -145,13 +172,13 @@ function MemberEditPanel({
   }, [state.message, onClose]);
 
   return (
-    <div className="mt-3 w-full rounded-lg border border-brand-justice/15 bg-brand-parchment-dark/25 p-4">
+    <div className="col-span-full mt-1 rounded-lg border border-brand-justice/15 bg-brand-parchment-dark/30 p-4">
       <div className="mb-3 flex items-center justify-between gap-2">
-        <p className="text-xs font-medium text-brand-ink">Modifier le membre</p>
+        <p className="text-sm font-medium text-brand-ink">Profil du membre</p>
         <button
           type="button"
           onClick={onClose}
-          className="rounded p-1 text-muted-foreground hover:bg-muted/50"
+          className="rounded-md p-1.5 text-muted-foreground hover:bg-muted/50"
           aria-label="Fermer"
         >
           <X className="h-4 w-4" />
@@ -159,12 +186,10 @@ function MemberEditPanel({
       </div>
       <form action={action} className="space-y-3">
         <input type="hidden" name="userId" value={userId} />
-        <p className="text-[11px] text-muted-foreground">{email}</p>
+        <p className="text-xs text-muted-foreground">{email}</p>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor={`edit-name-${userId}`} className="text-xs">
-              Nom complet
-            </Label>
+            <Label htmlFor={`edit-name-${userId}`}>Nom complet</Label>
             <Input
               id={`edit-name-${userId}`}
               name="fullName"
@@ -173,22 +198,19 @@ function MemberEditPanel({
               maxLength={120}
               defaultValue={storedName}
               placeholder="Prénom Nom"
-              className="h-9 text-sm"
             />
-            <p className="text-[10px] text-muted-foreground">
-              Pour Avocat ou Huissier, saisissez le nom sans « Maître » — le
+            <p className="text-[11px] text-muted-foreground">
+              Pour avocat ou huissier, saisissez le nom sans « Maître » — le
               préfixe est ajouté automatiquement.
             </p>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor={`edit-titre-${userId}`} className="text-xs">
-              Titre
-            </Label>
+            <Label htmlFor={`edit-titre-${userId}`}>Titre professionnel</Label>
             <select
               id={`edit-titre-${userId}`}
               name="titre"
               defaultValue={titre ?? ""}
-              className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+              className={selectClassName}
             >
               <option value="">Non renseigné</option>
               {(Object.keys(TITRES_PROFESSIONNELS) as TitreProfessionnel[]).map(
@@ -201,21 +223,18 @@ function MemberEditPanel({
             </select>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor={`edit-barreau-${userId}`} className="text-xs">
-              Barreau
-            </Label>
+            <Label htmlFor={`edit-barreau-${userId}`}>Barreau</Label>
             <Input
               id={`edit-barreau-${userId}`}
               name="barreau"
               maxLength={120}
               defaultValue={barreauFieldDefault(barreau)}
               placeholder={DEFAULT_BARREAU}
-              className="h-9 text-sm"
             />
           </div>
         </div>
         {state.error && (
-          <p role="alert" className="text-xs text-destructive">
+          <p role="alert" className="text-sm text-destructive">
             {state.error}
           </p>
         )}
@@ -240,6 +259,29 @@ function SaveDetailsButton() {
   );
 }
 
+function ReadOnlyMeta({
+  titreLabel,
+  roleLabel,
+}: {
+  titreLabel: string | null;
+  roleLabel: string;
+}) {
+  return (
+    <div className="flex min-w-[12rem] flex-col gap-2 sm:min-w-[14rem]">
+      <div>
+        <FieldLabel>Titre professionnel</FieldLabel>
+        <MemberBadge variant="muted">
+          {titreLabel ?? "Non renseigné"}
+        </MemberBadge>
+      </div>
+      <div>
+        <FieldLabel>Rôle cabinet</FieldLabel>
+        <MemberBadge variant="gold">{roleLabel}</MemberBadge>
+      </div>
+    </div>
+  );
+}
+
 export function MemberRowActions({
   userId,
   email,
@@ -249,6 +291,7 @@ export function MemberRowActions({
   currentRole,
   isCabinetOwner,
   canManage,
+  isSelf,
 }: {
   userId: string;
   email: string;
@@ -258,6 +301,7 @@ export function MemberRowActions({
   currentRole: Role;
   isCabinetOwner: boolean;
   canManage: boolean;
+  isSelf?: boolean;
 }) {
   const [roleState, roleAction] = useFormState(updateMemberRole, initialState);
   const [titreState, titreAction] = useFormState(updateMemberTitre, initialState);
@@ -270,10 +314,7 @@ export function MemberRowActions({
   }, [currentRole]);
 
   const feedback =
-    roleState.error ??
-    titreState.error ??
-    removeState.error ??
-    null;
+    roleState.error ?? titreState.error ?? removeState.error ?? null;
   const success =
     roleState.message ?? titreState.message ?? removeState.message ?? null;
   const memberLabel = fullName || email;
@@ -283,67 +324,64 @@ export function MemberRowActions({
       ? (titre as TitreProfessionnel)
       : "";
   const titreLabel = labelTitreProfessionnel(titre);
+  const roleLabel = ROLE_LABEL[currentRole] ?? currentRole;
 
-  if (!canManage || isCabinetOwner) {
+  if (!canManage || isCabinetOwner || isSelf) {
     return (
-      <div className="flex flex-col items-end gap-1">
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          {titreLabel && (
-            <span className="rounded-full border border-brand-justice/20 bg-brand-parchment-dark/40 px-2.5 py-0.5 text-[11px] font-medium text-brand-ink">
-              {titreLabel}
-            </span>
-          )}
-          <span className="rounded-full border border-brand-gold/30 bg-brand-gold/10 px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wider text-brand-ink">
-            {ROLE_LABEL[currentRole] ?? currentRole}
-          </span>
-        </div>
+      <div className="w-full sm:w-auto">
+        <ReadOnlyMeta titreLabel={titreLabel} roleLabel={roleLabel} />
       </div>
     );
   }
 
   return (
-    <div className="flex w-full min-w-0 flex-col items-stretch gap-1 sm:items-end">
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        <form action={titreAction} className="flex items-center">
-          <input type="hidden" name="userId" value={userId} />
-          <TitreSelect currentTitre={titreKey} />
-        </form>
-        <form action={roleAction} className="flex items-center">
-          <input type="hidden" name="userId" value={userId} />
-          <RoleSelect currentRole={localRole} onLocalChange={setLocalRole} />
-        </form>
+    <div className="w-full space-y-2 sm:w-auto sm:min-w-[min(100%,20rem)]">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <form action={titreAction}>
+            <input type="hidden" name="userId" value={userId} />
+            <FieldLabel>Titre professionnel</FieldLabel>
+            <TitreSelect currentTitre={titreKey} />
+          </form>
+        </div>
+        <div>
+          <form action={roleAction}>
+            <input type="hidden" name="userId" value={userId} />
+            <FieldLabel>Rôle cabinet</FieldLabel>
+            <RoleSelect currentRole={localRole} onLocalChange={setLocalRole} />
+          </form>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 border-t border-brand-justice/10 pt-3">
         <Button
           type="button"
           variant="outline"
           size="sm"
-          className="border-brand-justice/20"
+          className="h-9 flex-1 border-brand-justice/20 sm:flex-none"
           onClick={() => setEditing((v) => !v)}
           aria-expanded={editing}
         >
           <Pencil className="h-4 w-4" aria-hidden />
-          <span className="hidden sm:inline">Modifier</span>
+          Profil
         </Button>
-        <form action={removeAction}>
+        <form action={removeAction} className="flex-1 sm:flex-none">
           <input type="hidden" name="userId" value={userId} />
           <RemoveButton memberLabel={memberLabel} />
         </form>
       </div>
+
       {feedback && (
-        <p
-          role="alert"
-          className="text-right text-[11px] leading-tight text-destructive"
-        >
+        <p role="alert" className="text-xs text-destructive">
           {feedback}
         </p>
       )}
       {!feedback && success && (
-        <p
-          role="status"
-          className="text-right text-[11px] leading-tight text-emerald-700 dark:text-emerald-300"
-        >
+        <p role="status" className="text-xs text-emerald-700 dark:text-emerald-300">
           {success}
         </p>
       )}
+
       {editing && (
         <MemberEditPanel
           userId={userId}

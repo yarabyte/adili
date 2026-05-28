@@ -11,6 +11,7 @@ import {
   affaireMembres,
   affaires,
   clients,
+  cabinets,
   documents,
   echeances,
   users,
@@ -63,6 +64,7 @@ export type DashboardPendingDocument = {
 };
 
 export type CabinetDashboardData = {
+  cabinetName: string | null;
   kpis: DashboardKpis;
   recentAffaires: DashboardRecentAffaire[];
   recentlyOpened: Awaited<ReturnType<typeof getRecentAffairesOpened>>;
@@ -112,6 +114,7 @@ export async function getCabinetDashboard(
     pendingDocRows,
     mesEcheancesRow,
     echeancesSemaineRow,
+    cabinetRow,
   ] = await Promise.all([
     db
       .select({
@@ -209,6 +212,11 @@ export async function getCabinetDashboard(
           lte(echeances.dateEcheance, weekAhead)
         )
       ),
+    db
+      .select({ name: cabinets.name })
+      .from(cabinets)
+      .where(eq(cabinets.id, cabinetId))
+      .limit(1),
   ]);
 
   let totalAffaires = 0;
@@ -234,6 +242,7 @@ export async function getCabinetDashboard(
   };
 
   return {
+    cabinetName: cabinetRow[0]?.name ?? null,
     kpis,
     recentAffaires: recentAffaireRows.map((r) => ({
       id: r.id,

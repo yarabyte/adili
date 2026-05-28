@@ -1,5 +1,6 @@
 import { addMonths } from "date-fns";
 import { and, count, eq, gt, isNull, or } from "drizzle-orm";
+import { unstable_cache } from "next/cache";
 
 import { db } from "@/lib/db/client";
 import { candidaturesBeta, subscriptions } from "@/lib/db/schema";
@@ -26,13 +27,25 @@ function betaSubscriptionWhere(now: Date) {
  * sans ligne candidature à jour).
  */
 export async function countBetaPlacesUsed(): Promise<number> {
-  const now = new Date();
-  const [row] = await db
-    .select({ n: count() })
-    .from(subscriptions)
-    .where(betaSubscriptionWhere(now));
-  return Number(row?.n ?? 0);
+  try {
+    const now = new Date();
+    const [row] = await db
+      .select({ n: count() })
+      .from(subscriptions)
+      .where(betaSubscriptionWhere(now));
+    return Number(row?.n ?? 0);
+  } catch (err) {
+    console.error("[countBetaPlacesUsed]", err);
+    return 0;
+  }
 }
+
+/** Compteur beta mis en cache pour la landing (évite un timeout DB à chaque visite). */
+export const countBetaPlacesUsedCached = unstable_cache(
+  countBetaPlacesUsed,
+  ["adili-beta-places-used"],
+  { revalidate: 120 }
+);
 
 export async function acceptBetaCandidature(
   tx: Tx,

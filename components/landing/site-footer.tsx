@@ -94,7 +94,7 @@ export function SiteFooter({ stats, homeHref = "" }: SiteFooterProps) {
       <div className="mx-auto mt-10 flex max-w-6xl flex-col items-center justify-between gap-2 border-t border-white/10 px-4 pt-6 text-xs text-brand-parchment/60 sm:flex-row sm:px-6">
         <p>© {new Date().getFullYear()} Adili — Tous droits réservés</p>
         <p className="tabular-nums">
-          {corpusLine} · Données chiffrées · Hébergement sécurisé
+          {corpusLine} · Données chiffrées · Hébergement africain
         </p>
       </div>
     </footer>

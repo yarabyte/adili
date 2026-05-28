@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { RESET_PASSWORD_PATH } from "@/lib/auth/recovery";
 import { createSupabaseRouteHandlerClient } from "@/lib/supabase/route-handler";
 
 export const runtime = "nodejs";
@@ -17,6 +18,14 @@ export async function GET(request: NextRequest) {
     if (!error) {
       return response;
     }
+
+    const isRecovery =
+      destPath === RESET_PASSWORD_PATH ||
+      destPath.startsWith(`${RESET_PASSWORD_PATH}?`);
+    const erreur = isRecovery ? "lien-reinitialisation" : "callback";
+    return NextResponse.redirect(
+      new URL(`/connexion?erreur=${erreur}`, url.origin)
+    );
   }
 
   return NextResponse.redirect(new URL("/connexion?erreur=callback", url.origin));

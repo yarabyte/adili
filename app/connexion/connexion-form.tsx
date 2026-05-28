@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useFormState, useFormStatus } from "react-dom";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
 
 import {
   requestPasswordReset,
@@ -15,6 +15,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const initialState: AuthFormState = {};
+
+function SignInFeedback() {
+  const { pending } = useFormStatus();
+  if (!pending) return null;
+  return (
+    <p
+      role="status"
+      className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
+    >
+      Connexion en cours…
+    </p>
+  );
+}
 
 function SignInSubmitButton() {
   const { pending } = useFormStatus();
@@ -56,13 +69,6 @@ export function ConnexionForm({
   authLinkError,
 }: ConnexionFormProps) {
   const [signInState, signInAction] = useFormState(signIn, initialState);
-
-  useEffect(() => {
-    if (!signInState.redirectTo) return;
-    // Navigation document complète : les cookies posés par l’action serveur
-    // ne sont pas toujours visibles avant un router.push + refresh (RSC).
-    window.location.assign(signInState.redirectTo);
-  }, [signInState.redirectTo]);
   const [forgotState, forgotAction] = useFormState(
     requestPasswordReset,
     initialState
@@ -223,7 +229,9 @@ export function ConnexionForm({
           </div>
         </div>
 
-        {signInState.error && !signInState.redirectTo && (
+        <SignInFeedback />
+
+        {signInState.error && (
           <p
             role="alert"
             className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"

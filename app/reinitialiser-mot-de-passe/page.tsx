@@ -1,6 +1,7 @@
-import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
 import { AdiliLogo } from "@/components/brand/adili-logo";
+import { RecoverySessionGate } from "@/components/auth/recovery-session-gate";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 import { ResetPasswordForm } from "./reset-password-form";
@@ -9,13 +10,12 @@ export const metadata = {
   title: "Nouveau mot de passe · Adili",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function ReinitialiserMotDePassePage() {
   const supabase = createSupabaseServerClient();
   const { data } = await supabase.auth.getUser();
-
-  if (!data.user) {
-    redirect("/connexion?erreur=lien-reinitialisation");
-  }
+  const hasSession = Boolean(data.user);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-12">
@@ -30,7 +30,19 @@ export default async function ReinitialiserMotDePassePage() {
           </p>
         </div>
         <div className="mt-8">
-          <ResetPasswordForm />
+          {hasSession ? (
+            <ResetPasswordForm />
+          ) : (
+            <Suspense
+              fallback={
+                <p className="py-8 text-center text-sm text-muted-foreground">
+                  Chargement…
+                </p>
+              }
+            >
+              <RecoverySessionGate />
+            </Suspense>
+          )}
         </div>
       </div>
     </div>

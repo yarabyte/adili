@@ -30,19 +30,22 @@ import {
   getCorpusBreakdownCached,
   type CorpusStats,
 } from "@/lib/corpus/stats";
-import { BETA_MAX_PLACES, countBetaPlacesUsed } from "@/lib/billing/beta";
+import {
+  BETA_MAX_PLACES,
+  countBetaPlacesUsedCached,
+} from "@/lib/billing/beta";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const supabase = createSupabaseServerClient();
-  const { data } = await supabase.auth.getUser();
-  const isAuthed = Boolean(data.user);
-  const [corpus, betaUsed] = await Promise.all([
+  const [{ data }, corpus, betaUsed] = await Promise.all([
+    supabase.auth.getUser(),
     getCorpusBreakdownCached(),
-    countBetaPlacesUsed(),
+    countBetaPlacesUsedCached(),
   ]);
+  const isAuthed = Boolean(data.user);
   const betaRemaining = Math.max(0, BETA_MAX_PLACES - betaUsed);
 
   return (
@@ -702,12 +705,12 @@ const ABOUT_VALUES: {
   {
     icon: ShieldCheck,
     title: "Souveraineté & confidentialité",
-    body: "Vos dossiers ne servent jamais à entraîner de modèles tiers. Hébergement européen, cloisonnement strict par cabinet, données chiffrées.",
+    body: "Vos dossiers ne servent jamais à entraîner de modèles tiers. Hébergement africain, cloisonnement strict par cabinet, données chiffrées.",
   },
   {
     icon: Scale,
     title: "Spécialisation OHADA",
-    body: "Adili n'est pas un assistant IA généraliste : il est entraîné et indexé sur les actes uniformes et la jurisprudence CCJA, pour les avocats de l'espace OHADA.",
+    body: "Adili n'est pas un assistant IA généraliste : il est entraîné et indexé sur les actes uniformes, la jurisprudence CCJA et les textes nationaux (dont le droit camerounais), pour les avocats et praticiens du droit OHADA.",
   },
   {
     icon: ThumbsUp,

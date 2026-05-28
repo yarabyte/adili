@@ -60,7 +60,13 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isAuthPage && user) {
-    return NextResponse.redirect(new URL("/auth/after", request.url));
+    const returnTo =
+      request.nextUrl.searchParams.get("redirect") ??
+      request.nextUrl.searchParams.get("next");
+    const dest = returnTo
+      ? readAuthReturnPath({ redirect: returnTo })
+      : "/app";
+    return NextResponse.redirect(new URL(dest, request.url));
   }
 
   const isOnboarding =
@@ -69,12 +75,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(
       new URL(connexionPath(returnPath), request.url)
     );
-  }
-
-  if (pathname === "/reinitialiser-mot-de-passe" && !user) {
-    const redirectUrl = new URL("/connexion", request.url);
-    redirectUrl.searchParams.set("erreur", "lien-reinitialisation");
-    return NextResponse.redirect(redirectUrl);
   }
 
   supabaseResponse = NextResponse.next({

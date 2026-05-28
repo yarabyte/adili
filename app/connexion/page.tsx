@@ -1,10 +1,8 @@
 import { redirect } from "next/navigation";
 
 import { AdiliLogo } from "@/components/brand/adili-logo";
-import { getCurrentProfile } from "@/lib/auth/profile";
 import { safeAuthRedirectPath } from "@/lib/auth/redirect";
 import { parsePrefillEmail } from "@/lib/onboarding/prefill-email";
-import { resolvePostAuthPath } from "@/lib/onboarding/resolve";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 import { ConnexionForm } from "./connexion-form";
@@ -29,15 +27,9 @@ export default async function ConnexionPage({
   const supabase = createSupabaseServerClient();
   const { data } = await supabase.auth.getUser();
   if (data.user) {
-    const session = await getCurrentProfile();
-    const fallback = session
-      ? await resolvePostAuthPath(session)
-      : "/app";
-    const afterLogin = safeAuthRedirectPath(
-      searchParams?.redirect ?? searchParams?.next,
-      fallback
+    redirect(
+      safeAuthRedirectPath(searchParams?.redirect ?? searchParams?.next, "/app")
     );
-    redirect(afterLogin);
   }
 
   const afterLogin = safeAuthRedirectPath(
@@ -47,7 +39,9 @@ export default async function ConnexionPage({
   const prefillEmail = parsePrefillEmail(searchParams?.email);
 
   const resetSuccess = searchParams?.["mot-de-passe"] === "reinitialise";
-  const resetLinkError = searchParams?.erreur === "lien-reinitialisation";
+  const resetLinkError =
+    searchParams?.erreur === "lien-reinitialisation" ||
+    searchParams?.["mot-de-passe"] === "oublie";
   const emailConfirmed = searchParams?.compte === "confirme";
   const authLinkError = searchParams?.erreur === "lien-auth";
   const callbackError = searchParams?.erreur === "callback";

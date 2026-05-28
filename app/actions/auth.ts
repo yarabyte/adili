@@ -5,7 +5,9 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
 import { formatAuthError } from "@/lib/auth/messages";
+import { passwordRecoveryCallbackUrl } from "@/lib/auth/recovery";
 import { safeAuthRedirectPath } from "@/lib/auth/redirect";
+import { canFastPathToApp } from "@/lib/onboarding/fast-path";
 import { resolvePostAuthPath } from "@/lib/onboarding/resolve";
 import { parseInscriptionPlan } from "@/lib/onboarding/plans";
 import { getCurrentProfile } from "@/lib/auth/profile";
@@ -39,15 +41,21 @@ export async function signIn(
   }
 
   const rawRedirect = String(formData.get("redirect") ?? "").trim();
-  if (rawRedirect) {
-    return { redirectTo: safeAuthRedirectPath(rawRedirect, "/app") };
+  const explicitDest = rawRedirect
+    ? safeAuthRedirectPath(rawRedirect, "/app")
+    : null;
+
+  if (explicitDest && explicitDest !== "/app") {
+    redirect(explicitDest);
   }
 
   const session = await getCurrentProfile();
-  const redirectTo = session
-    ? await resolvePostAuthPath(session)
-    : "/app";
-  return { redirectTo };
+  if (session && (await canFastPathToApp(session))) {
+    redirect(explicitDest ?? "/app");
+  }
+
+  const dest = session ? await resolvePostAuthPath(session) : "/app";
+  redirect(dest);
 }
 
 export async function signUp(
@@ -143,7 +151,7 @@ function authOrigin(): string {
   );
 }
 
-/** Envoie l’email Supabase de réinitialisation (lien → callback → nouveau mot de passe). */
+/** Envoie l’email Supabase de réinitialisation (lien → /auth/confirm ou /auth/callback → formulaire). */
 export async function requestPasswordReset(
   _prev: AuthFormState,
   formData: FormData
@@ -157,7 +165,7 @@ export async function requestPasswordReset(
   const supabase = createSupabaseServerClient();
   const origin = authOrigin();
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${origin}/reinitialiser-mot-de-passe`,
+    redirectTo: passwordRecoveryCallbackUrl(origin),
   });
 
   if (error) {
@@ -204,5 +212,5 @@ export async function completePasswordReset(
   }
 
   await supabase.auth.signOut();
-  return { redirectTo: "/connexion?mot-de-passe=reinitialise" };
+  redirect("/connexion?mot-de-passe=reinitialise");
 }

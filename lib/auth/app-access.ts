@@ -7,6 +7,7 @@ import {
 } from "@/lib/auth/profile";
 import { buildAppShellData } from "@/lib/auth/shell";
 import { getIntendedPlan } from "@/lib/onboarding/intended-plan";
+import { canFastPathToApp } from "@/lib/onboarding/fast-path";
 import { resolvePostAuthPath } from "@/lib/onboarding/resolve";
 import {
   getLatestStudentValidation,
@@ -38,7 +39,10 @@ export async function requireAppAccess(
   if (!session) redirect("/connexion");
 
   const intended = getIntendedPlan(session);
-  const postAuthPath = await resolvePostAuthPath(session);
+  const postAuthPath =
+    pathname?.startsWith("/app") && (await canFastPathToApp(session))
+      ? "/app"
+      : await resolvePostAuthPath(session);
 
   if (pathname && !pathname.startsWith(postAuthPath) && postAuthPath !== "/app") {
     if (

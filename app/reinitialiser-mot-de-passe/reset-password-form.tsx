@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 
@@ -24,15 +24,34 @@ function SubmitButton() {
   );
 }
 
+function FormFeedback({ error }: { error?: string }) {
+  const { pending } = useFormStatus();
+  return (
+    <>
+      {pending && (
+        <p
+          role="status"
+          className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
+        >
+          Enregistrement en cours…
+        </p>
+      )}
+      {error && !pending && (
+        <p
+          role="alert"
+          className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+        >
+          {error}
+        </p>
+      )}
+    </>
+  );
+}
+
 export function ResetPasswordForm() {
   const [state, action] = useFormState(completePasswordReset, initialState);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-
-  useEffect(() => {
-    if (!state.redirectTo) return;
-    window.location.assign(state.redirectTo);
-  }, [state.redirectTo]);
 
   return (
     <form action={action} className="space-y-5">
@@ -97,14 +116,7 @@ export function ResetPasswordForm() {
         </div>
       </div>
 
-      {state.error && !state.redirectTo && (
-        <p
-          role="alert"
-          className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
-        >
-          {state.error}
-        </p>
-      )}
+      <FormFeedback error={state.error} />
 
       <SubmitButton />
     </form>

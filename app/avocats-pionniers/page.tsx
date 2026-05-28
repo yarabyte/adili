@@ -5,7 +5,10 @@ import { BetaApplyForm } from "@/components/billing/beta-apply-form";
 import { BetaPlacesProgress } from "@/components/billing/beta-places-progress";
 import { SiteFooter } from "@/components/landing/site-footer";
 import { SiteHeader } from "@/components/landing/site-header";
-import { BETA_MAX_PLACES, countBetaPlacesUsed } from "@/lib/billing/beta";
+import {
+  BETA_MAX_PLACES,
+  countBetaPlacesUsedCached,
+} from "@/lib/billing/beta";
 import { getCorpusStatsCached } from "@/lib/corpus/stats";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -28,7 +31,7 @@ export default async function AvocatsPionniersPage() {
   const isAuthed = Boolean(data.user);
 
   const [used, stats] = await Promise.all([
-    countBetaPlacesUsed(),
+    countBetaPlacesUsedCached(),
     getCorpusStatsCached(),
   ]);
   const remaining = Math.max(0, BETA_MAX_PLACES - used);

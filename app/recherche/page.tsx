@@ -1,13 +1,12 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 
-import { AdiliLogo } from "@/components/brand/adili-logo";
 import { AppShell } from "@/components/app-shell/app-shell";
 import { StudentShell } from "@/components/app-shell/student-shell";
-import { Button } from "@/components/ui/button";
+import { SiteFooter } from "@/components/landing/site-footer";
+import { SiteHeader } from "@/components/landing/site-header";
 import { buildAppShellData } from "@/lib/auth/shell";
 import { getCurrentProfile } from "@/lib/auth/profile";
+import { getCorpusBreakdownCached } from "@/lib/corpus/stats";
 import { getIntendedPlan } from "@/lib/onboarding/intended-plan";
 import {
   getLatestStudentValidation,
@@ -93,32 +92,17 @@ export default async function RecherchePage({
     return <AppShell data={shellData}>{content}</AppShell>;
   }
 
+  const corpus = await getCorpusBreakdownCached();
+
   return (
     <div className="flex min-h-screen flex-col bg-brand-parchment">
-      <header className="sticky top-0 z-40 border-b border-brand-justice/10 bg-background/90 shadow-sm backdrop-blur-md supports-[backdrop-filter]:bg-background/75">
-        <div className="mx-auto flex h-16 max-w-3xl items-center justify-between gap-4 px-4 sm:px-6">
-          <AdiliLogo href="/" height={32} />
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/">
-                <ArrowLeft className="h-4 w-4" aria-hidden />
-                Accueil
-              </Link>
-            </Button>
-            <Button
-              size="sm"
-              asChild
-              className="hidden sm:inline-flex"
-            >
-              <Link href="/connexion">Se connecter</Link>
-            </Button>
-          </div>
-        </div>
-      </header>
+      <SiteHeader isAuthed={isAuthed} homeHref="/" />
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6 sm:py-14">
-        {content}
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6 sm:py-14">
+        <div className="mx-auto max-w-3xl">{content}</div>
       </main>
+
+      <SiteFooter stats={corpus.total} homeHref="/" />
     </div>
   );
 }

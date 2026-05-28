@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, isNull } from "drizzle-orm";
 import { redirect } from "next/navigation";
-import { Building2, Crown, Lock, Trash2, UserRound } from "lucide-react";
+import { Building2, Crown, Lock, Mail, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { db } from "@/lib/db/client";
@@ -37,6 +37,18 @@ const ROLE_LABEL: Record<string, string> = {
   avocat: "Avocat",
   collaborateur: "Collaborateur",
 };
+
+function memberInitials(fullName: string | null, email: string): string {
+  const name = fullName?.replace(/^(maître|maitre)\s+/i, "").trim();
+  if (name) {
+    const parts = name.split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) {
+      return `${parts[0]![0]}${parts[parts.length - 1]![0]}`.toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  }
+  return email.slice(0, 2).toUpperCase();
+}
 
 export default async function CabinetPage() {
   const session = await getCurrentProfile();
@@ -185,75 +197,72 @@ export default async function CabinetPage() {
           </p>
         ) : (
           <ul className="divide-y divide-brand-justice/10 overflow-hidden rounded-xl border border-brand-justice/10 bg-card shadow-sm">
-            {members.map((m) => (
-              <li
-                key={m.id}
-                className="flex flex-col gap-3 px-4 py-3 transition-colors hover:bg-brand-parchment-dark/30 md:flex-row md:items-start md:justify-between"
-              >
-                <div className="flex min-w-0 items-center gap-3">
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-brand-justice/10 text-brand-justice">
-                    <UserRound className="h-4 w-4" aria-hidden />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-foreground">
-                      {formatMemberDisplayName(m.fullName, m.email, m.titre)}
-                    </p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {m.email}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex flex-shrink-0 flex-col items-stretch gap-2 md:min-w-[280px] md:items-end">
-                  <div className="flex flex-wrap items-center justify-end gap-2">
-                  {cabinet?.ownerId === m.id && (
+            {members.map((m) => {
+              const isOwnerRow = cabinet?.ownerId === m.id;
+              const isSelf = m.id === session.user.id;
+
+              return (
+                <li
+                  key={m.id}
+                  className="grid gap-4 px-4 py-4 transition-colors hover:bg-brand-parchment-dark/25 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start"
+                >
+                  <div className="flex min-w-0 gap-3">
                     <span
-                      title="Propriétaire du cabinet"
-                      className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wider text-amber-900 dark:text-amber-200"
+                      className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-brand-justice/12 text-xs font-semibold text-brand-justice"
+                      aria-hidden
                     >
-                      <Crown className="h-3 w-3" aria-hidden />
-                      Propriétaire
+                      {memberInitials(m.fullName, m.email)}
                     </span>
-                  )}
-                  {canManage &&
-                  m.id !== cabinet?.ownerId &&
-                  m.id !== session.user.id ? (
-                    <MemberRowActions
-                      userId={m.id}
-                      email={m.email}
-                      fullName={m.fullName}
-                      titre={m.titre}
-                      barreau={m.barreau}
-                      currentRole={m.role as "admin" | "avocat" | "collaborateur"}
-                      isCabinetOwner={false}
-                      canManage
-                    />
-                  ) : cabinet?.ownerId === m.id ? (
-                    <MemberRowActions
-                      userId={m.id}
-                      email={m.email}
-                      fullName={m.fullName}
-                      titre={m.titre}
-                      barreau={m.barreau}
-                      currentRole={
-                        m.role as "admin" | "avocat" | "collaborateur"
-                      }
-                      isCabinetOwner
-                      canManage={canManage}
-                    />
-                  ) : (
-                    <span className="rounded-full border border-brand-gold/30 bg-brand-gold/10 px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wider text-brand-ink">
-                      {ROLE_LABEL[m.role] ?? m.role}
-                      {m.id === session.user.id && (
-                        <span className="ml-1 normal-case tracking-normal text-muted-foreground">
-                          (vous)
-                        </span>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="truncate text-sm font-medium text-foreground">
+                          {formatMemberDisplayName(
+                            m.fullName,
+                            m.email,
+                            m.titre
+                          )}
+                        </p>
+                        {isOwnerRow && (
+                          <span
+                            title="Propriétaire du cabinet"
+                            className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-900 dark:text-amber-200"
+                          >
+                            <Crown className="h-3 w-3" aria-hidden />
+                            Propriétaire
+                          </span>
+                        )}
+                        {isSelf && !isOwnerRow && (
+                          <span className="text-[11px] text-muted-foreground">
+                            (vous)
+                          </span>
+                        )}
+                      </div>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {m.email}
+                      </p>
+                      {m.barreau && (
+                        <p className="mt-0.5 truncate text-[11px] text-muted-foreground/80">
+                          {m.barreau}
+                        </p>
                       )}
-                    </span>
-                  )}
+                    </div>
                   </div>
-                </div>
-              </li>
-            ))}
+                  <MemberRowActions
+                    userId={m.id}
+                    email={m.email}
+                    fullName={m.fullName}
+                    titre={m.titre}
+                    barreau={m.barreau}
+                    currentRole={
+                      m.role as "admin" | "avocat" | "collaborateur"
+                    }
+                    isCabinetOwner={isOwnerRow}
+                    canManage={canManage}
+                    isSelf={isSelf}
+                  />
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
@@ -276,16 +285,25 @@ export default async function CabinetPage() {
             {pendingInvitations.map((inv) => (
               <li
                 key={inv.id}
-                className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
+                className="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5 transition-colors hover:bg-brand-parchment-dark/25"
               >
-                <div>
-                  <p className="text-sm font-medium text-foreground">
-                    {inv.email}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {ROLE_LABEL[inv.role] ?? inv.role} · expire le{" "}
-                    {formatDate(inv.expiresAt)}
-                  </p>
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-brand-parchment-dark text-brand-justice/80">
+                    <Mail className="h-4 w-4" aria-hidden />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-foreground">
+                      {inv.email}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Rôle proposé :{" "}
+                      <span className="font-medium text-foreground/90">
+                        {ROLE_LABEL[inv.role] ?? inv.role}
+                      </span>
+                      {" · "}
+                      expire le {formatDate(inv.expiresAt)}
+                    </p>
+                  </div>
                 </div>
                 {canManage && (
                   <form action={revokeInvitation}>

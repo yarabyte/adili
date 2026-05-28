@@ -14,7 +14,7 @@ export function SiteHeader({ isAuthed, homeHref = "" }: SiteHeaderProps) {
         <div className="flex items-center gap-3">
           <AdiliLogo href="/" height={34} priority />
           <span className="hidden rounded-full border border-brand-justice/20 bg-brand-justice/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-justice/80 sm:inline">
-            OHADA · Beta
+            Beta
           </span>
         </div>
         <SiteHeaderNav isAuthed={isAuthed} homeHref={homeHref} />

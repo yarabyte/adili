@@ -7,7 +7,7 @@ import { getRecentActivity } from "@/lib/activity";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { getCabinetDashboard } from "@/lib/dashboard/get-cabinet-dashboard";
 import { getCorpusBreakdownCached } from "@/lib/corpus/stats";
-import { buildAppShellData } from "@/lib/auth/shell";
+import { formatMemberDisplayName } from "@/lib/users/display-name";
 import { getIntendedPlan } from "@/lib/onboarding/intended-plan";
 import {
   getLatestStudentValidation,
@@ -67,19 +67,18 @@ export default async function AppHome({
     );
   }
 
-  const [activity, dashboard, shell] = await Promise.all([
+  const [activity, dashboard] = await Promise.all([
     session.user.id ? getRecentActivity(session.user.id, 8) : Promise.resolve([]),
     getCabinetDashboard(session),
-    buildAppShellData(session),
   ]);
 
   if (!dashboard) redirect("/onboarding/cabinet");
 
-  const displayName =
-    shell?.displayName ??
-    session.profile?.fullName ??
-    session.user.email?.split("@")[0] ??
-    "Utilisateur";
+  const displayName = formatMemberDisplayName(
+    session.profile?.fullName,
+    session.user.email,
+    session.profile?.titre
+  );
 
   return (
     <div className="space-y-6">
@@ -89,7 +88,7 @@ export default async function AppHome({
 
       <CabinetDashboard
         displayName={displayName}
-        cabinetName={shell?.cabinetName ?? null}
+        cabinetName={dashboard.cabinetName ?? null}
         dashboard={dashboard}
         corpus={corpus}
         activity={activity}

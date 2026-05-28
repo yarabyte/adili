@@ -75,7 +75,12 @@ curl -X PATCH "https://api.supabase.com/v1/projects/$PROJECT_REF/config/auth" \
 Dashboard Supabase → **Authentication → URL Configuration** :
 
 - **Site URL** : `http://localhost:3000` (dev) ou `https://votre-domaine.com` (prod)
-- **Redirect URLs** : `http://localhost:3000/auth/callback`, `http://localhost:3000/auth/confirm`, et équivalents prod
+- **Redirect URLs** (une ligne par URL) :
+  - `http://localhost:3000/auth/callback`
+  - `http://localhost:3000/auth/callback?next=%2Freinitialiser-mot-de-passe`
+  - `http://localhost:3000/auth/confirm`
+  - `http://localhost:3000/reinitialiser-mot-de-passe`
+  - Équivalents en `https://` pour la production
 
 Sans `Site URL` correct, `{{ .SiteURL }}` dans les emails sera faux.
 
