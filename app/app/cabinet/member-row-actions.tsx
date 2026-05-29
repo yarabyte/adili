@@ -5,6 +5,7 @@ import { useFormState, useFormStatus } from "react-dom";
 import { Loader2, Pencil, UserMinus, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-provider";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -121,20 +122,22 @@ function TitreSelect({ currentTitre }: { currentTitre: TitreProfessionnel | "" }
 
 function RemoveButton({ memberLabel }: { memberLabel: string }) {
   const { pending } = useFormStatus();
+  const confirm = useConfirm();
   return (
     <Button
       type="submit"
       variant="outline"
       size="sm"
       disabled={pending}
-      onClick={(e) => {
-        if (
-          !window.confirm(
-            `Retirer ${memberLabel} du cabinet ?\n\nIl perdra immédiatement l'accès. Son compte reste actif et il pourra rejoindre un autre cabinet sur invitation.`
-          )
-        ) {
-          e.preventDefault();
-        }
+      onClick={async (e) => {
+        const ok = await confirm({
+          title: `Retirer ${memberLabel} du cabinet ?`,
+          description:
+            "Il perdra immédiatement l'accès. Son compte reste actif et il pourra rejoindre un autre cabinet sur invitation.",
+          confirmLabel: "Retirer",
+          variant: "destructive",
+        });
+        if (!ok) e.preventDefault();
       }}
       className="h-9 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
       aria-label={`Retirer ${memberLabel} du cabinet`}

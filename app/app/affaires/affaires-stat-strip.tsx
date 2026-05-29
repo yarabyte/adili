@@ -25,35 +25,44 @@ const STATUT_ORDER: (keyof typeof STATUTS_AFFAIRE_LABEL)[] = [
   "archive",
 ];
 
-/** Trait supérieur + teinte d’icône : repères visuels sans aplats lourds. */
-const STATUT_ACCENT: Record<
+const STATUT_STYLE: Record<
   keyof typeof STATUTS_AFFAIRE_LABEL,
-  { bar: string; barMuted: string; icon: string }
+  {
+    top: string;
+    iconWrap: string;
+    icon: string;
+    activeRing: string;
+  }
 > = {
   ouvert: {
-    bar: "border-t-emerald-500",
-    barMuted: "border-t-emerald-500/35",
+    top: "border-t-emerald-500",
+    iconWrap: "bg-emerald-500/12",
     icon: "text-emerald-700 dark:text-emerald-400",
+    activeRing: "ring-emerald-500/25",
   },
   en_cours: {
-    bar: "border-t-brand-justice",
-    barMuted: "border-t-brand-justice/35",
+    top: "border-t-brand-justice",
+    iconWrap: "bg-brand-justice/10",
     icon: "text-brand-justice",
+    activeRing: "ring-brand-justice/25",
   },
   en_delibere: {
-    bar: "border-t-amber-500",
-    barMuted: "border-t-amber-500/40",
+    top: "border-t-amber-500",
+    iconWrap: "bg-amber-500/12",
     icon: "text-amber-800 dark:text-amber-400",
+    activeRing: "ring-amber-500/25",
   },
   clos: {
-    bar: "border-t-slate-500",
-    barMuted: "border-t-slate-400/45",
+    top: "border-t-slate-500",
+    iconWrap: "bg-slate-500/10",
     icon: "text-slate-600 dark:text-slate-400",
+    activeRing: "ring-slate-400/30",
   },
   archive: {
-    bar: "border-t-slate-400",
-    barMuted: "border-t-slate-400/35",
+    top: "border-t-slate-400",
+    iconWrap: "bg-slate-400/10",
     icon: "text-slate-500 dark:text-slate-400",
+    activeRing: "ring-slate-400/25",
   },
 };
 
@@ -89,7 +98,92 @@ function isKnownStatut(s: string): s is keyof typeof STATUTS_AFFAIRE_LABEL {
 }
 
 const tabFocus =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-justice/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-justice/50 focus-visible:ring-offset-2";
+
+function StatTab({
+  href,
+  isActive,
+  label,
+  count,
+  icon: Icon,
+  accent,
+  isEmpty,
+}: {
+  href: string;
+  isActive: boolean;
+  label: string;
+  count: number;
+  icon: typeof LayoutGrid;
+  accent: {
+    top: string;
+    iconWrap: string;
+    icon: string;
+    activeRing: string;
+  };
+  isEmpty?: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      scroll={false}
+      role="tab"
+      aria-selected={isActive}
+      title={`${label} — ${count} dossier${count !== 1 ? "s" : ""}`}
+      className={cn(
+        "group relative flex min-h-[5.5rem] flex-col justify-between rounded-xl border border-brand-justice/10 border-t-[3px] bg-card/60 px-3.5 py-3 transition-all duration-200",
+        accent.top,
+        isActive
+          ? cn(
+              "z-[1] border-brand-justice/20 bg-background shadow-md ring-2",
+              accent.activeRing
+            )
+          : "hover:border-brand-justice/20 hover:bg-background hover:shadow-sm",
+        !isActive && isEmpty && "opacity-75",
+        tabFocus
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <span
+          className={cn(
+            "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors",
+            isActive ? accent.iconWrap : "bg-muted/60 group-hover:bg-muted"
+          )}
+        >
+          <Icon
+            className={cn(
+              "h-4 w-4",
+              isActive ? accent.icon : "text-muted-foreground"
+            )}
+            aria-hidden
+          />
+        </span>
+        {isActive && (
+          <span className="rounded-full bg-brand-justice/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-justice">
+            Actif
+          </span>
+        )}
+      </div>
+      <div className="mt-2 space-y-0.5">
+        <p
+          className={cn(
+            "text-xs font-semibold uppercase tracking-[0.12em]",
+            isActive ? "text-foreground" : "text-muted-foreground"
+          )}
+        >
+          {label}
+        </p>
+        <p
+          className={cn(
+            "font-heading text-2xl font-semibold leading-none tabular-nums text-brand-ink",
+            !isActive && isEmpty && "text-muted-foreground"
+          )}
+        >
+          {count.toLocaleString("fr-FR")}
+        </p>
+      </div>
+    </Link>
+  );
+}
 
 export function AffairesStatStrip({
   searchParams,
@@ -105,107 +199,41 @@ export function AffairesStatStrip({
 
   return (
     <div
-      className="rounded-2xl border border-brand-justice/10 bg-gradient-to-b from-brand-parchment-dark/50 to-card/90 p-1 shadow-sm sm:p-1.5"
+      className="overflow-hidden rounded-2xl border border-brand-justice/10 bg-gradient-to-b from-card to-brand-parchment/30 shadow-sm"
       role="presentation"
     >
       <div
-        className="flex gap-1 overflow-x-auto scroll-smooth pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:gap-1.5 sm:overflow-visible"
+        className="grid grid-cols-2 gap-2 p-2 sm:grid-cols-3 lg:grid-cols-6 lg:gap-2.5 lg:p-2.5"
         role="tablist"
         aria-label="Filtrer par statut d’affaire"
       >
-        <Link
+        <StatTab
           href={listHref(searchParams, { statut: "" })}
-          scroll={false}
-          role="tab"
-          aria-selected={allActive}
-          title="Afficher tous les dossiers visibles"
-          className={cn(
-            "relative flex min-w-[5.75rem] shrink-0 snap-start flex-col gap-1 rounded-xl border border-border/25 border-t-[3px] border-t-brand-gold bg-card/40 px-3 py-2.5 text-left transition-[box-shadow,background-color,border-color] duration-200 hover:bg-card/90 hover:shadow-sm sm:min-w-0 sm:flex-1",
-            allActive
-              ? "border-border/50 bg-background shadow-md ring-1 ring-brand-justice/15"
-              : "border-t-brand-gold/50",
-            tabFocus
-          )}
-        >
-          <span className="flex items-center gap-1.5">
-            <LayoutGrid
-              className={cn(
-                "h-3.5 w-3.5 shrink-0",
-                allActive ? "text-brand-justice" : "text-muted-foreground"
-              )}
-              aria-hidden
-            />
-            <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-              Toutes
-            </span>
-          </span>
-          <span
-            className={cn(
-              "font-sans text-[1.35rem] font-semibold leading-none tracking-tight tabular-nums text-brand-ink slashed-zero",
-              totalVisible === 0 && "text-muted-foreground"
-            )}
-          >
-            {totalVisible.toLocaleString("fr-FR")}
-          </span>
-        </Link>
+          isActive={allActive}
+          label="Toutes"
+          count={totalVisible}
+          icon={LayoutGrid}
+          accent={{
+            top: "border-t-brand-gold",
+            iconWrap: "bg-brand-gold/15",
+            icon: "text-brand-gold",
+            activeRing: "ring-brand-gold/30",
+          }}
+          isEmpty={totalVisible === 0}
+        />
 
-        {STATUT_ORDER.map((key) => {
-          const href = listHref(searchParams, { statut: key });
-          const count = countsByStatut[key];
-          const isActive = activeStatut === key;
-          const Icon = ICON_STATUT[key];
-          const label = STATUTS_AFFAIRE_LABEL[key];
-          const isEmpty = count === 0;
-          const acc = STATUT_ACCENT[key];
-
-          return (
-            <Link
-              key={key}
-              href={href}
-              scroll={false}
-              role="tab"
-              aria-selected={isActive}
-              title={`${label} — ${count} dossier${count > 1 ? "s" : ""}`}
-              className={cn(
-                "relative flex min-w-[5.75rem] shrink-0 snap-start flex-col gap-1 rounded-xl border border-border/25 border-t-[3px] bg-card/40 px-3 py-2.5 text-left transition-[box-shadow,background-color,border-color,opacity] duration-200 sm:min-w-0 sm:flex-1",
-                isActive ? acc.bar : acc.barMuted,
-                isActive
-                  ? "border-border/50 bg-background shadow-md ring-1 ring-brand-justice/15"
-                  : "hover:bg-card/90 hover:shadow-sm",
-                !isActive && isEmpty && "opacity-[0.88]",
-                tabFocus
-              )}
-            >
-              <span className="flex items-center gap-1.5">
-                <Icon
-                  className={cn(
-                    "h-3.5 w-3.5 shrink-0 transition-colors",
-                    isActive ? acc.icon : "text-muted-foreground",
-                    !isActive && isEmpty && "opacity-75"
-                  )}
-                  aria-hidden
-                />
-                <span
-                  className={cn(
-                    "text-[10px] font-semibold uppercase tracking-[0.16em]",
-                    isActive ? "text-foreground" : "text-muted-foreground",
-                    !isActive && isEmpty && "opacity-80"
-                  )}
-                >
-                  {label}
-                </span>
-              </span>
-              <span
-                className={cn(
-                  "font-sans text-[1.35rem] font-semibold leading-none tracking-tight tabular-nums text-brand-ink slashed-zero",
-                  !isActive && isEmpty && "text-muted-foreground"
-                )}
-              >
-                {count.toLocaleString("fr-FR")}
-              </span>
-            </Link>
-          );
-        })}
+        {STATUT_ORDER.map((key) => (
+          <StatTab
+            key={key}
+            href={listHref(searchParams, { statut: key })}
+            isActive={activeStatut === key}
+            label={STATUTS_AFFAIRE_LABEL[key]}
+            count={countsByStatut[key]}
+            icon={ICON_STATUT[key]}
+            accent={STATUT_STYLE[key]}
+            isEmpty={countsByStatut[key] === 0}
+          />
+        ))}
       </div>
     </div>
   );

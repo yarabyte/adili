@@ -2,11 +2,8 @@ import { cache } from "react";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
-import type {
-  AppShellData,
-  RecentAffaireSidebarItem,
-} from "@/components/app-shell/app-shell";
-import { getRecentAffairesOpened } from "@/lib/affaires/recent-views";
+import type { AppShellData } from "@/components/app-shell/app-shell";
+import { getRecentAffairesForSidebar } from "@/lib/affaires/recent-sidebar";
 import {
   getCurrentProfile,
   isCabinetOwner,
@@ -67,18 +64,10 @@ async function buildAppShellDataImpl(
   const [cabinet, stats, recentAffaires] = await Promise.all([
     getCabinetRow(cabinetId),
     getCorpusBreakdownCached(),
-    getRecentAffairesOpened(session, 3),
+    getRecentAffairesForSidebar(session, 5),
   ]);
 
   const isOwner = cabinet ? isCabinetOwner(session, cabinet) : false;
-
-  const recentAffairesSidebar: RecentAffaireSidebarItem[] = recentAffaires.map(
-    (a) => ({
-      id: a.id,
-      reference: a.reference,
-      intitule: a.intitule,
-    })
-  );
 
   return {
     initials,
@@ -89,7 +78,7 @@ async function buildAppShellDataImpl(
     isCabinetOwner: isOwner,
     sources: stats.total.sources,
     chunks: stats.total.chunks,
-    recentAffaires: recentAffairesSidebar,
+    recentAffaires,
   };
 }
 

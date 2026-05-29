@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-provider";
 import {
   addAffaireMembre,
   removeAffaireMembre,
@@ -211,6 +212,7 @@ function MembreRow({
 }) {
   const [pending, startTransition] = useTransition();
   const router = useRouter();
+  const confirm = useConfirm();
   const [error, setError] = useState<string | null>(null);
 
   function changeRole(role: RoleAffaire) {
@@ -225,13 +227,19 @@ function MembreRow({
     });
   }
 
-  function remove() {
-    if (
-      !window.confirm(
-        `Retirer ${formatMemberDisplayName(membre.userFullName, membre.userEmail, membre.userTitre)} de cette affaire ?`
-      )
-    )
-      return;
+  async function remove() {
+    const label = formatMemberDisplayName(
+      membre.userFullName,
+      membre.userEmail,
+      membre.userTitre
+    );
+    const ok = await confirm({
+      title: `Retirer ${label} ?`,
+      description: "Cette personne n'aura plus accès à cette affaire.",
+      confirmLabel: "Retirer",
+      variant: "destructive",
+    });
+    if (!ok) return;
     setError(null);
     startTransition(async () => {
       const res = await removeAffaireMembre(affaireId, membre.userId);

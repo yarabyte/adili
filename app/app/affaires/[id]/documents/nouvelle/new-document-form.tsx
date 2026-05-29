@@ -12,6 +12,10 @@ import {
   LABELS_DOCUMENTS,
   TYPES_DOCUMENTS,
 } from "@/lib/constants/types-documents";
+import {
+  CORRESPONDANCE_TYPES,
+  isCorrespondanceType,
+} from "@/lib/documents/correspondance";
 
 const initialState: DocumentActionState = {};
 
@@ -29,8 +33,31 @@ function SubmitButton() {
   );
 }
 
-export function NewDocumentForm({ affaireId }: { affaireId: string }) {
+export function NewDocumentForm({
+  affaireId,
+  defaultType,
+  correspondanceOnly = false,
+}: {
+  affaireId: string;
+  defaultType?: string;
+  correspondanceOnly?: boolean;
+}) {
   const [state, formAction] = useFormState(createDocument, initialState);
+
+  const initialType =
+    defaultType && isCorrespondanceType(defaultType)
+      ? defaultType
+      : defaultType && !correspondanceOnly && isTypeDocumentSafe(defaultType)
+        ? defaultType
+        : correspondanceOnly
+          ? CORRESPONDANCE_TYPES[0]
+          : "";
+
+  const catalog = correspondanceOnly
+    ? { correspondance: TYPES_DOCUMENTS.correspondance }
+    : Object.fromEntries(
+        Object.entries(TYPES_DOCUMENTS).filter(([k]) => k !== "correspondance")
+      );
 
   return (
     <form
@@ -50,7 +77,11 @@ export function NewDocumentForm({ affaireId }: { affaireId: string }) {
           required
           minLength={3}
           maxLength={255}
-          placeholder="Ex : Conclusions au fond — affaire Bensoussan c/ SOTRAC"
+          placeholder={
+            correspondanceOnly
+              ? "Ex : Lettre au client — point sur l'audience du 12 mars"
+              : "Ex : Conclusions au fond — affaire Bensoussan c/ SOTRAC"
+          }
           className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
           aria-invalid={Boolean(state.fieldErrors?.titre)}
           aria-describedby={state.fieldErrors?.titre ? "titre-err" : undefined}
@@ -77,17 +108,19 @@ export function NewDocumentForm({ affaireId }: { affaireId: string }) {
           id="typeDocument"
           name="typeDocument"
           required
-          defaultValue=""
+          defaultValue={initialType}
           className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
           aria-invalid={Boolean(state.fieldErrors?.typeDocument)}
           aria-describedby={
             state.fieldErrors?.typeDocument ? "type-err" : undefined
           }
         >
-          <option value="" disabled>
-            Choisir un type
-          </option>
-          {Object.entries(TYPES_DOCUMENTS).map(([catKey, cat]) => (
+          {!correspondanceOnly && (
+            <option value="" disabled>
+              Choisir un type
+            </option>
+          )}
+          {Object.entries(catalog).map(([catKey, cat]) => (
             <optgroup key={catKey} label={cat.label}>
               {cat.items.map((item) => (
                 <option key={item} value={item}>
@@ -107,8 +140,9 @@ export function NewDocumentForm({ affaireId }: { affaireId: string }) {
           </p>
         )}
         <p className="text-[12px] text-muted-foreground">
-          Le type sert à classer la pièce dans l&apos;historique et à
-          pré-remplir certains modèles plus tard.
+          {correspondanceOnly
+            ? "Ce courrier sera listé dans l'onglet Correspondances de l'affaire."
+            : "Le type sert à classer la pièce dans l'historique et à pré-remplir certains modèles plus tard."}
         </p>
       </div>
 
@@ -126,5 +160,11 @@ export function NewDocumentForm({ affaireId }: { affaireId: string }) {
         <SubmitButton />
       </div>
     </form>
+  );
+}
+
+function isTypeDocumentSafe(v: string): boolean {
+  return Object.values(TYPES_DOCUMENTS).some((g) =>
+    (g.items as readonly string[]).includes(v)
   );
 }

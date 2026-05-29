@@ -92,7 +92,7 @@ export function CabinetDashboard({
         </h1>
         <p className="max-w-2xl text-[14px] leading-relaxed text-muted-foreground">
           Vue d&apos;ensemble de votre cabinet : dossiers, échéances, pièces à
-          valider et accès rapide aux corpus OHADA et Cameroun.
+          valider et accès rapide au corpus et au droit camerounais.
         </p>
       </header>
 

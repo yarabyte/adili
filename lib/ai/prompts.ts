@@ -44,7 +44,7 @@ export function buildSynthesisUserPrompt(query: string, hits: SearchHit[]): stri
   return `## Question de l'avocat
 ${query}
 
-## Extraits du corpus OHADA (résultats de la recherche vectorielle, ordonnés par pertinence)
+## Extraits du corpus (résultats de la recherche vectorielle, ordonnés par pertinence)
 ${formattedChunks}
 
 ## Tâche

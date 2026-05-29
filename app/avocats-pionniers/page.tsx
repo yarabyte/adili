@@ -19,7 +19,7 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 const BENEFITS = [
-  "Recherche sémantique sur le corpus OHADA indexé",
+  "Recherche sémantique sur le corpus indexé",
   "Synthèses IA sourcées avec citations vérifiables",
   "Module dossiers, documents et comptes rendus",
   "Ligne directe avec l'équipe produit pendant la bêta",

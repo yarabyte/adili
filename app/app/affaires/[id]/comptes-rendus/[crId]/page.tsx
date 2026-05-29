@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { ChevronLeft } from "lucide-react";
 
+import { CrEditLayout } from "@/components/comptes-rendus/cr-edit-layout";
 import { CrEditor } from "@/components/comptes-rendus/cr-editor";
 import { CrForm } from "@/components/comptes-rendus/cr-form";
 import { CrWorkflowActions } from "@/components/comptes-rendus/cr-workflow-actions";
@@ -169,22 +170,24 @@ export default async function CompteRenduDetailPage({
         />
       </header>
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-        <CrForm
-          mode="edit"
-          affaireId={affaireId}
-          compteRenduId={crId}
-          initial={initial}
-          disabled={!canEditMetadata}
-          membreOptions={membreOptions}
-          adversaires={adversaires}
-        />
-        <CrEditor
-          compteRenduId={crId}
-          initialContent={row.corpsTiptap}
-          readOnly={readOnlyEditor}
-        />
-      </div>
+      <CrEditLayout>
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+          <CrForm
+            mode="edit"
+            affaireId={affaireId}
+            compteRenduId={crId}
+            initial={initial}
+            disabled={!canEditMetadata}
+            membreOptions={membreOptions}
+            adversaires={adversaires}
+          />
+          <CrEditor
+            compteRenduId={crId}
+            initialContent={row.corpsTiptap}
+            readOnly={readOnlyEditor}
+          />
+        </div>
+      </CrEditLayout>
     </div>
   );
 }

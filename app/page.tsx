@@ -203,7 +203,7 @@ function TrustStrip({
             icon={Library}
             title="Droit camerounais"
             highlight={cameroonHighlight}
-            description="Code pénal, procédure pénale et procédure civile déjà intégrés ; constitution, code civil, travail, fiscalité et autres textes prévus d'ici le 30 juin 2026."
+            description="Code pénal, procédure pénale, procédure civile, constitution, travail, fiscalité et activité commerciale déjà intégrés ; code civil et autres textes complémentaires prévus d'ici le 30 juin 2026."
             variant={cameroonLive ? "live" : "beta"}
           />
           <TrustItem
@@ -630,22 +630,22 @@ const STEPS = [
   {
     n: "01",
     title: "Posez votre question",
-    body: "Comme un avocat ou un praticien du droit s'adresserait à un confrère : en langage naturel ou avec des références précises (AUA, AUDCG, CCJA…). Adili comprend les deux.",
+    body: "Exposez votre cas comme vous le feriez à un confrère, en langage naturel ou avec vos références (AUA, AUDCG, CP-CM, article précis). En quelques secondes, Adili comprend l'intention juridique et le niveau de précision attendu.",
   },
   {
     n: "02",
     title: "Adili remonte les extraits",
-    body: "Recherche vectorielle dans 1 600+ articles indexés, déduplication, re-ranking par feedback des avocats et praticiens du droit qui vous précèdent.",
+    body: "Le moteur croise actes OHADA et droit camerounais, puis filtre les doublons pour ne garder que l'essentiel. Vous voyez d'abord les passages les plus utiles, classés pour accélérer votre analyse.",
   },
   {
     n: "03",
     title: "Obtenez la synthèse sourcée",
-    body: "Une réponse rédigée en français juridique, avec citations [1] [2] cliquables — toujours rattachées au texte qu'un magistrat acceptera.",
+    body: "Recevez une synthèse claire, rédigée en français juridique, avec citations [1] [2] directement vérifiables. Chaque affirmation reste reliée au texte source pour sécuriser vos positions avant audience ou dépôt.",
   },
   {
     n: "04",
     title: "Rédigez dans vos dossiers cabinet",
-    body: "Créez des affaires, pilotez membres et confidentialité, puis produisez vos pièces dans l’éditeur avec insertions corpus, workflow de validation et impression PDF.",
+    body: "Passez de la recherche à la production sans changer d'outil : créez l'affaire, rédigez avec insertion des citations et gérez la validation interne. En sortie, vos pièces sont prêtes à exporter en PDF et à partager au client ou à la juridiction.",
   },
 ];
 
@@ -816,7 +816,7 @@ function FinalCta({ isAuthed }: { isAuthed: boolean }) {
               </h2>
               <p className="text-base leading-relaxed text-white/85 sm:text-[15px]">
                 Comme tout avocat ou praticien du droit en zone OHADA — création
-                de compte en 30&nbsp;secondes, sans carte bancaire. Corpus OHADA
+                de compte en 30&nbsp;secondes, sans carte bancaire. Corpus
                 et textes camerounais disponibles dès l&apos;inscription.
               </p>
             </div>

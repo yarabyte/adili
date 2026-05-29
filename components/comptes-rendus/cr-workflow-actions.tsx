@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-provider";
 import {
   deleteCompteRendu,
   finaliserCompteRendu,
@@ -49,6 +50,7 @@ export function CrWorkflowActions({
   };
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [pending, startTransition] = useTransition();
   const [pdfPending, setPdfPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -238,14 +240,14 @@ export function CrWorkflowActions({
             variant="ghost"
             className="text-destructive hover:text-destructive"
             disabled={pending}
-            onClick={() => {
-              if (
-                !window.confirm(
-                  "Supprimer définitivement ce compte rendu ?"
-                )
-              ) {
-                return;
-              }
+            onClick={async () => {
+              const ok = await confirm({
+                title: "Supprimer ce compte rendu ?",
+                description: "Cette action est définitive.",
+                confirmLabel: "Supprimer",
+                variant: "destructive",
+              });
+              if (!ok) return;
               startTransition(async () => {
                 const res = await deleteCompteRendu(compteRenduId);
                 if (res.error) setError(res.error);

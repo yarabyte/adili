@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-provider";
 import {
   deleteDocument,
   rejectDocument,
@@ -53,6 +54,7 @@ export function WorkflowActions({
   hideStatusBadge?: boolean;
   onBeforeAction?: () => Promise<void>;
 }) {
+  const confirm = useConfirm();
   const [pending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<{
     tone: "success" | "error";
@@ -191,13 +193,14 @@ export function WorkflowActions({
             variant="ghost"
             className="text-destructive hover:bg-destructive/5"
             disabled={pending}
-            onClick={() => {
-              if (
-                !confirm(
-                  "Supprimer ce document ? Cette action est irréversible."
-                )
-              )
-                return;
+            onClick={async () => {
+              const ok = await confirm({
+                title: "Supprimer ce document ?",
+                description: "Cette action est irréversible.",
+                confirmLabel: "Supprimer",
+                variant: "destructive",
+              });
+              if (!ok) return;
               run(async () => {
                 const res = await deleteDocument(documentId);
                 if (res.ok) {

@@ -1,4 +1,4 @@
-import { asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, notInArray, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { Suspense } from "react";
 import Link from "next/link";
@@ -6,6 +6,7 @@ import { notFound, redirect } from "next/navigation";
 import {
   ChevronLeft,
   Gavel,
+  History,
   ShieldAlert,
   UserRound,
   CalendarDays,
@@ -16,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { parseAffaireTabParam } from "@/lib/affaires/detail-tabs";
 import { AffaireDetailTabs } from "./affaire-detail-tabs";
+
 import { db } from "@/lib/db/client";
 import {
   affaireMembres,
@@ -27,6 +29,7 @@ import {
   echeances,
   users,
 } from "@/lib/db/schema";
+import { CORRESPONDANCE_TYPES } from "@/lib/documents/correspondance";
 import { recordAffaireView } from "@/lib/affaires/recent-views";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { authorize, hasPermission } from "@/lib/permissions/affaires";
@@ -39,6 +42,7 @@ import {
 import { MembresPanel } from "./membres-panel";
 import { HistoriquePanel } from "./historique-panel";
 import { ComptesRendusPanel } from "./comptes-rendus-panel";
+import { CorrespondancesPanel } from "./correspondances-panel";
 import { DocumentsPanel } from "./documents-panel";
 import { EcheancesPanel, type EcheanceListItem } from "./echeances-panel";
 import { AffaireStatusActions } from "./affaire-status-actions";
@@ -144,21 +148,39 @@ export default async function AffaireDetailPage({
   const affectedIds = new Set(membres.map((m) => m.userId));
   const addableUsers = cabinetUsers.filter((u) => !affectedIds.has(u.id));
 
-  const [[{ documentCount }], [{ comptesRendusCount }], [{ historiqueCount }]] =
-    await Promise.all([
-      db
-        .select({ documentCount: sql<number>`count(*)::int` })
-        .from(documents)
-        .where(eq(documents.affaireId, params.id)),
-      db
-        .select({ comptesRendusCount: sql<number>`count(*)::int` })
-        .from(comptesRendus)
-        .where(eq(comptesRendus.affaireId, params.id)),
-      db
-        .select({ historiqueCount: sql<number>`count(*)::int` })
-        .from(auditLog)
-        .where(eq(auditLog.affaireId, params.id)),
-    ]);
+  const [
+    [{ documentCount }],
+    [{ comptesRendusCount }],
+    [{ correspondancesCount }],
+    [{ historiqueCount }],
+  ] = await Promise.all([
+    db
+      .select({ documentCount: sql<number>`count(*)::int` })
+      .from(documents)
+      .where(
+        and(
+          eq(documents.affaireId, params.id),
+          notInArray(documents.typeDocument, [...CORRESPONDANCE_TYPES])
+        )
+      ),
+    db
+      .select({ comptesRendusCount: sql<number>`count(*)::int` })
+      .from(comptesRendus)
+      .where(eq(comptesRendus.affaireId, params.id)),
+    db
+      .select({ correspondancesCount: sql<number>`count(*)::int` })
+      .from(documents)
+      .where(
+        and(
+          eq(documents.affaireId, params.id),
+          inArray(documents.typeDocument, [...CORRESPONDANCE_TYPES])
+        )
+      ),
+    db
+      .select({ historiqueCount: sql<number>`count(*)::int` })
+      .from(auditLog)
+      .where(eq(auditLog.affaireId, params.id)),
+  ]);
 
   const membreOptions = await listAffaireMembreOptions(params.id);
   const defaultResponsableId =
@@ -274,9 +296,23 @@ export default async function AffaireDetailPage({
             </h1>
           </div>
 
-          {canManageStatus && (
-            <AffaireStatusActions affaireId={row.id} statut={row.statut} />
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="shrink-0 text-muted-foreground"
+            >
+              <Link href={`/app/affaires/${row.id}?tab=historique`}>
+                <History className="h-4 w-4" aria-hidden />
+                Historique
+                <TabCountBadge count={Number(historiqueCount ?? 0)} />
+              </Link>
+            </Button>
+            {canManageStatus && (
+              <AffaireStatusActions affaireId={row.id} statut={row.statut} />
+            )}
+          </div>
         </div>
 
         <dl className="grid gap-3 text-[13px] sm:grid-cols-2 lg:grid-cols-4">
@@ -346,6 +382,10 @@ export default async function AffaireDetailPage({
               Comptes rendus
               <TabCountBadge count={Number(comptesRendusCount ?? 0)} />
             </TabsTrigger>
+            <TabsTrigger value="correspondances">
+              Correspondances
+              <TabCountBadge count={Number(correspondancesCount ?? 0)} />
+            </TabsTrigger>
             <TabsTrigger value="membres">
               Membres
               <TabCountBadge count={membres.length} />
@@ -353,10 +393,6 @@ export default async function AffaireDetailPage({
             <TabsTrigger value="echeances">
               Échéances
               <TabCountBadge count={echeancesList.length} />
-            </TabsTrigger>
-            <TabsTrigger value="historique">
-              Historique
-              <TabCountBadge count={Number(historiqueCount ?? 0)} />
             </TabsTrigger>
           </TabsList>
 
@@ -371,6 +407,13 @@ export default async function AffaireDetailPage({
             <ComptesRendusPanel
               affaireId={row.id}
               canCreate={hasPermission(ctx.role, "compte_rendu", "creer")}
+            />
+          </TabsContent>
+
+          <TabsContent value="correspondances">
+            <CorrespondancesPanel
+              affaireId={row.id}
+              canCreate={ctx.role !== "lecteur" && ctx.role !== null}
             />
           </TabsContent>
 

@@ -342,7 +342,7 @@ export function EditorAffaire({
         </div>
       </header>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden xl:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden xl:grid-cols-[minmax(0,1fr)_400px]">
         <main className="flex min-h-0 flex-col overflow-hidden">
           <div className="flex-shrink-0 border-b border-brand-justice/8 bg-card/60 px-4 py-2 backdrop-blur-sm lg:px-6">
             <EditorToolbar editor={editor} disabled={!editable} />
@@ -390,7 +390,14 @@ export function EditorAffaire({
           </div>
         </main>
 
-        <CitationInserter editor={editor} disabled={!editable} />
+        <CitationInserter
+          editor={editor}
+          disabled={!editable}
+          affaireReference={affaire.reference}
+          affaireTitre={affaire.titre}
+          documentTitre={document.titre}
+          documentType={document.typeDocument}
+        />
       </div>
     </div>
   );

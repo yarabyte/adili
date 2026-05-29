@@ -2,9 +2,11 @@ import { desc, eq, sql } from "drizzle-orm";
 import {
   Archive,
   Briefcase,
+  Activity,
   CalendarDays,
   CheckCircle2,
   Edit3,
+  Scale,
   FileText,
   Loader2,
   MessageSquare,
@@ -29,6 +31,8 @@ const HIST_PAGE_SIZE = 20;
 const ICON_BY_ACTION: Record<string, typeof Briefcase> = {
   "affaire.creee": Briefcase,
   "affaire.modifiee": Edit3,
+  "affaire.en_cours": Activity,
+  "affaire.en_delibere": Scale,
   "affaire.archivee": Archive,
   "affaire.cloturee": CheckCircle2,
   "affaire.reouverte": RotateCcw,

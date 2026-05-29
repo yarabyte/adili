@@ -44,6 +44,7 @@ export const DecisionActionZ = z.object({
   deadline: z.string().datetime().optional(),
   responsable_id: z.uuid().optional(),
   fait: z.boolean().default(false),
+  rappelActif: z.boolean().default(false),
   fait_at: z.string().datetime().optional(),
 });
 

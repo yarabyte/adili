@@ -1,18 +1,7 @@
 "use client";
 
-import { ChevronDown, Clock } from "lucide-react";
-
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Clock } from "lucide-react";
 import type { CameroonCorpusEntry } from "@/lib/corpus/cameroon-roadmap";
-import { CAMEROON_CORPUS_TARGET_LABEL } from "@/lib/corpus/cameroon-roadmap";
 
 function PlannedCorpusItems({ items }: { items: readonly CameroonCorpusEntry[] }) {
   return (
@@ -43,43 +32,9 @@ type CameroonPlannedListProps = {
 };
 
 export function CameroonPlannedList({ preview, more }: CameroonPlannedListProps) {
-  const hasMore = more.length > 0;
+  const allItems = [...preview, ...more];
 
   return (
-    <div>
-      <PlannedCorpusItems items={preview} />
-
-      {hasMore ? (
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="mt-4 w-full border-brand-gold/35 bg-brand-gold/5 text-brand-ink hover:bg-brand-gold/10"
-            >
-              <ChevronDown className="h-4 w-4 text-brand-gold" aria-hidden />
-              Voir plus
-              <span className="text-muted-foreground">
-                ({more.length} texte{more.length > 1 ? "s" : ""})
-              </span>
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-h-[min(85vh,640px)] overflow-y-auto sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Feuille de route — droit camerounais</DialogTitle>
-              <DialogDescription>
-                Textes prévus d&apos;ici le {CAMEROON_CORPUS_TARGET_LABEL}, en
-                complément de ceux déjà listés. Priorisation selon les retours
-                des cabinets en bêta.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="mt-2">
-              <PlannedCorpusItems items={more} />
-            </div>
-          </DialogContent>
-        </Dialog>
-      ) : null}
-    </div>
+    <PlannedCorpusItems items={allItems} />
   );
 }

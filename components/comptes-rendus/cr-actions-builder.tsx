@@ -23,6 +23,16 @@ function toDatetimeLocal(iso?: string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+function normalizeActionReminder(item: DecisionAction): DecisionAction {
+  if (item.type !== "action") {
+    return { ...item, rappelActif: false };
+  }
+  return {
+    ...item,
+    rappelActif: Boolean(!item.fait && item.deadline),
+  };
+}
+
 export function CrActionsBuilder({
   value,
   onChange,
@@ -35,7 +45,11 @@ export function CrActionsBuilder({
   membreOptions: AffaireMembreOption[];
 }) {
   function updateAt(index: number, patch: Partial<DecisionAction>) {
-    onChange(value.map((item, i) => (i === index ? { ...item, ...patch } : item)));
+    onChange(
+      value.map((item, i) =>
+        i === index ? normalizeActionReminder({ ...item, ...patch }) : item
+      )
+    );
   }
 
   function removeAt(index: number) {
@@ -45,7 +59,12 @@ export function CrActionsBuilder({
   function addItem(type: "decision" | "action") {
     onChange([
       ...value,
-      { id: newId(), type, texte: "", fait: false },
+      normalizeActionReminder({
+        id: newId(),
+        type,
+        texte: "",
+        fait: false,
+      }),
     ]);
   }
 
@@ -129,6 +148,12 @@ export function CrActionsBuilder({
                         })
                       }
                     />
+                    {!item.fait && item.rappelActif && (
+                      <p className="text-[11px] text-muted-foreground">
+                        Rappel d&apos;échéance activé automatiquement tant que
+                        l&apos;action n&apos;est pas marquée « Fait ».
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Responsable (optionnel)</Label>

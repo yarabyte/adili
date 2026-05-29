@@ -30,7 +30,7 @@ function createClient(): Cached {
   // pour autoriser plusieurs requêtes parallèles sans saturer le pool session (5432).
   const isTransactionPooler = /:6543\b/.test(url!);
   const sqlClient = postgres(url!, {
-    max: isTransactionPooler ? 3 : 1,
+    max: isTransactionPooler ? 8 : 1,
     idle_timeout: 10,
     max_lifetime: 60 * 15,
     connect_timeout: 15,

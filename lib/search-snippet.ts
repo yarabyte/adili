@@ -1,3 +1,5 @@
+import { normalizeSearchText, tokenizeQuery } from "./search-text";
+
 /**
  * Retire le bruit typique des PDF OHADA (en-têtes, URLs, numéros de page)
  * pour l’affichage des résultats de recherche, puis réagence le texte en
@@ -231,6 +233,70 @@ function softParagraphs(input: string, targetChars = 320): string {
  * repli sur le brut tronqué si tout a été filtré (sinon Zod / LLM reçoivent un
  * snippet vide alors que le chunk existe en base).
  */
+function scoreWindow(text: string, terms: string[]): number {
+  const norm = normalizeSearchText(text);
+  if (terms.length === 0) return 0;
+  let score = 0;
+  for (const t of terms) {
+    if (norm.includes(t)) score += t.length >= 6 ? 2 : 1;
+  }
+  for (let i = 0; i < terms.length - 1; i++) {
+    const bigram = `${terms[i]} ${terms[i + 1]}`;
+    if (norm.includes(bigram)) score += 3;
+  }
+  return score;
+}
+
+function splitSnippetWindows(text: string, windowSize: number): string[] {
+  if (text.length <= windowSize) return [text];
+  const windows: string[] = [];
+  const step = Math.floor(windowSize * 0.55);
+  for (let start = 0; start < text.length; start += step) {
+    const slice = text.slice(start, start + windowSize);
+    if (slice.trim().length < 40) continue;
+    windows.push(slice.trim());
+    if (start + windowSize >= text.length) break;
+  }
+  return windows.length > 0 ? windows : [text];
+}
+
+/**
+ * Extrait centré sur les termes de la requête (meilleure fenêtre du chunk).
+ */
+export function searchHitSnippetForQuery(
+  raw: string,
+  query: string,
+  maxChars = 960
+): string {
+  const full = cleanCorpusSnippet(raw, Math.min(maxChars * 2, 2400));
+  if (!full.trim()) return searchHitSnippet(raw, maxChars);
+
+  const terms = tokenizeQuery(query);
+  if (terms.length === 0) {
+    return full.length <= maxChars ? full : `${full.slice(0, maxChars).trim()}…`;
+  }
+
+  const windows = splitSnippetWindows(full, Math.min(maxChars + 120, 900));
+  let best = windows[0] ?? full;
+  let bestScore = scoreWindow(best, terms);
+
+  for (const w of windows) {
+    const s = scoreWindow(w, terms);
+    if (s > bestScore) {
+      bestScore = s;
+      best = w;
+    }
+  }
+
+  if (bestScore === 0) return searchHitSnippet(raw, maxChars);
+
+  if (best.length <= maxChars) return best;
+  const slice = best.slice(0, maxChars);
+  const lastSpace = slice.lastIndexOf(" ");
+  const cut = lastSpace > maxChars * 0.6 ? lastSpace : maxChars;
+  return `${slice.slice(0, cut).trim()}…`;
+}
+
 export function searchHitSnippet(raw: string, maxChars = 960): string {
   const cleaned = cleanCorpusSnippet(raw, maxChars);
   if (cleaned.length > 0) return cleaned;

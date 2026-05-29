@@ -7,18 +7,6 @@ export function CabinetPrintLetterhead({
 }: {
   cabinet: CabinetPrintIdentity;
 }) {
-  const location = [cabinet.address?.trim(), cabinet.city?.trim()]
-    .filter(Boolean)
-    .join(", ");
-
-  const legalParts: string[] = [];
-  if (location) legalParts.push(location);
-  if (cabinet.phone?.trim()) legalParts.push(`Tél. ${cabinet.phone.trim()}`);
-  if (cabinet.registreCommerce?.trim()) {
-    legalParts.push(`RC ${cabinet.registreCommerce.trim()}`);
-  }
-  if (cabinet.niu?.trim()) legalParts.push(`NIU ${cabinet.niu.trim()}`);
-
   return (
     <>
       {cabinet.logoUrl ? (
@@ -32,9 +20,6 @@ export function CabinetPrintLetterhead({
         />
       ) : null}
       <p className="print-doc__cabinet">{cabinet.name}</p>
-      {legalParts.length > 0 && (
-        <p className="print-doc__cabinet-legal">{legalParts.join(" · ")}</p>
-      )}
     </>
   );
 }

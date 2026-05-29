@@ -4,6 +4,7 @@ import { GraduationCap, LogOut, Search } from "lucide-react";
 import { AdiliLogo } from "@/components/brand/adili-logo";
 import { QuotaIndicator } from "@/components/billing/quota-indicator";
 import { Button } from "@/components/ui/button";
+import { ConfirmProvider } from "@/components/ui/confirm-provider";
 import { signOut } from "@/app/actions/auth";
 
 export function StudentShell({
@@ -16,7 +17,8 @@ export function StudentShell({
   email: string;
 }) {
   return (
-    <div className="flex min-h-screen flex-col bg-brand-parchment">
+    <ConfirmProvider>
+    <div className="adili-workspace flex min-h-screen flex-col bg-brand-parchment">
       <header className="sticky top-0 z-40 border-b border-brand-justice/10 bg-brand-justice text-primary-foreground shadow-md">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4">
           <div className="flex items-center gap-4">
@@ -60,5 +62,6 @@ export function StudentShell({
         Compte étudiant · {email}
       </footer>
     </div>
+    </ConfirmProvider>
   );
 }

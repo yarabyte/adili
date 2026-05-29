@@ -1,7 +1,7 @@
 import { jsonError, jsonOk } from "@/lib/api/json";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { formatPeriodeFinLabel } from "@/lib/billing/period";
-import { getQuotaSummaryForUser } from "@/lib/quotas/check-and-consume";
+import { getQuotaSummaryCached } from "@/lib/quotas/cached";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +11,7 @@ export async function GET() {
     return jsonError("Non authentifié", 401);
   }
 
-  const summary = await getQuotaSummaryForUser(session.user.id);
+  const summary = await getQuotaSummaryCached(session.user.id);
   if (!summary) {
     return jsonError("Aucun abonnement actif", 402, { code: "no_subscription" });
   }

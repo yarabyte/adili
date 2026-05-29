@@ -4,6 +4,7 @@
 export const AFFAIRE_DETAIL_TAB_VALUES = [
   "documents",
   "comptes_rendus",
+  "correspondances",
   "membres",
   "echeances",
   "historique",

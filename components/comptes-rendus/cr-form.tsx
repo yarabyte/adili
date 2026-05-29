@@ -1,7 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
 import { ChevronDown, Loader2, NotebookPen } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -24,9 +23,28 @@ import { cn } from "@/lib/utils";
 import { CrActionsBuilder } from "./cr-actions-builder";
 import { CrParticipantsBuilder } from "./cr-participants-builder";
 import { CrPiecesBuilder } from "./cr-pieces-builder";
+import { useCrSaveQueue } from "./cr-save-queue";
 
 const selectClassName =
   "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
+
+const SAVE_TIMEOUT_MS = 45_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), ms);
+    promise.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      }
+    );
+  });
+}
 
 function defaultDatetimeLocal(): string {
   const d = new Date();
@@ -89,9 +107,10 @@ export function CrForm({
   membreOptions: AffaireMembreOption[];
   adversaires: AdversaireAffaire[];
 }) {
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const { enqueue, setFormSaving } = useCrSaveQueue();
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const [typeCr, setTypeCr] = useState(initial?.typeCr ?? "");
@@ -159,36 +178,46 @@ export function CrForm({
     };
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setSaved(false);
     setFieldErrors({});
+    setSaving(true);
+    setFormSaving(true);
 
-    startTransition(async () => {
-      try {
-        if (mode === "create") {
-          await createCompteRendu(affaireId, buildPayload());
-        } else if (compteRenduId) {
-          const res = await updateCompteRendu(affaireId, {
-            id: compteRenduId,
-            ...buildPayload(),
-          });
-          if (res.error) setError(res.error);
-          if (res.fieldErrors) setFieldErrors(res.fieldErrors);
-          if (res.ok) router.refresh();
-        }
-      } catch (err) {
-        if (
-          typeof err === "object" &&
-          err !== null &&
-          "digest" in err &&
-          String((err as { digest?: string }).digest).startsWith("NEXT_REDIRECT")
-        ) {
-          throw err;
-        }
-        setError(err instanceof Error ? err.message : "Erreur inattendue.");
+    try {
+      if (mode === "create") {
+        await createCompteRendu(affaireId, buildPayload());
+      } else if (compteRenduId) {
+        const res = await withTimeout(
+          enqueue(() =>
+            updateCompteRendu(affaireId, {
+              id: compteRenduId,
+              ...buildPayload(),
+            })
+          ),
+          SAVE_TIMEOUT_MS,
+          "La sauvegarde a pris trop de temps. Vérifiez votre connexion à la base, puis réessayez."
+        );
+        if (res.error) setError(res.error);
+        if (res.fieldErrors) setFieldErrors(res.fieldErrors);
+        if (res.ok) setSaved(true);
       }
-    });
+    } catch (err) {
+      if (
+        typeof err === "object" &&
+        err !== null &&
+        "digest" in err &&
+        String((err as { digest?: string }).digest).startsWith("NEXT_REDIRECT")
+      ) {
+        throw err;
+      }
+      setError(err instanceof Error ? err.message : "Erreur inattendue.");
+    } finally {
+      setSaving(false);
+      setFormSaving(false);
+    }
   }
 
   return (
@@ -363,9 +392,12 @@ export function CrForm({
       )}
 
       {!disabled && (
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="submit" disabled={pending || !typeCr}>
-            {pending ? (
+        <div className="flex items-center justify-end gap-3 pt-2">
+          {saved && (
+            <p className="text-sm text-muted-foreground">Informations enregistrées.</p>
+          )}
+          <Button type="submit" disabled={saving || !typeCr}>
+            {saving ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <NotebookPen className="h-4 w-4" />

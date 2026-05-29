@@ -4,7 +4,10 @@ import { redirect } from "next/navigation";
 import {
   ArrowUpRight,
   Briefcase,
+  CheckCircle2,
   ChevronRight,
+  Columns3,
+  ExternalLink,
   FilePenLine,
   Filter,
   Plus,
@@ -17,23 +20,37 @@ import { db } from "@/lib/db/client";
 import {
   affaireMembres,
   affaires,
+  cabinets,
   clients,
   documents,
   users,
 } from "@/lib/db/schema";
-import { getCurrentProfile } from "@/lib/auth/profile";
+import { getCurrentProfile, isCabinetAdmin } from "@/lib/auth/profile";
 import {
   STATUTS_AFFAIRE_COLOR,
   STATUTS_AFFAIRE_LABEL,
 } from "@/lib/constants/statuts";
 import { LABELS_CONTENTIEUX } from "@/lib/constants/types-contentieux";
 import { formatMemberDisplayName } from "@/lib/users/display-name";
+import { validateDocument } from "@/app/actions/documents";
 
 import { AffaireFilters } from "./affaire-filters";
 import { AffairesStatStrip } from "./affaires-stat-strip";
 
 export const metadata = { title: "Affaires · Adili" };
 export const dynamic = "force-dynamic";
+
+async function quickValidateDocumentAction(formData: FormData) {
+  "use server";
+
+  const documentId = String(formData.get("documentId") ?? "");
+  const affaireId = String(formData.get("affaireId") ?? "");
+
+  if (!documentId || !affaireId) return;
+
+  await validateDocument(documentId);
+  redirect(`/app/affaires/${affaireId}/documents/${documentId}`);
+}
 
 function formatDate(d: Date | string): string {
   const date = typeof d === "string" ? new Date(d) : d;
@@ -48,7 +65,53 @@ type SearchParams = {
   q?: string;
   statut?: string;
   type?: string;
+  cols?: string | string[];
 };
+
+const OPTIONAL_COLUMNS = [
+  "contentieux",
+  "responsable",
+  "statut",
+  "mis_a_jour",
+] as const;
+
+type OptionalColumn = (typeof OPTIONAL_COLUMNS)[number];
+
+const COLUMN_LABEL: Record<OptionalColumn, string> = {
+  contentieux: "Contentieux",
+  responsable: "Responsable",
+  statut: "Statut",
+  mis_a_jour: "Mis à jour",
+};
+
+function parseVisibleColumns(
+  cols: string | string[] | undefined
+): Record<OptionalColumn, boolean> {
+  const defaults = Object.fromEntries(
+    OPTIONAL_COLUMNS.map((k) => [k, true])
+  ) as Record<OptionalColumn, boolean>;
+
+  const raw = Array.isArray(cols) ? cols.join(",") : cols;
+  if (!raw?.trim()) return defaults;
+
+  const set = new Set(
+    raw
+      .split(",")
+      .map((v) => v.trim())
+      .filter((v): v is OptionalColumn =>
+        (OPTIONAL_COLUMNS as readonly string[]).includes(v)
+      )
+  );
+
+  if (set.size === 0) return defaults;
+
+  return {
+    contentieux: set.has("contentieux"),
+    responsable: set.has("responsable"),
+    statut: set.has("statut"),
+    mis_a_jour: set.has("mis_a_jour"),
+  };
+}
 
 const ZERO_COUNTS: Record<keyof typeof STATUTS_AFFAIRE_LABEL, number> = {
   ouvert: 0,
@@ -135,25 +198,58 @@ export default async function AffairesListPage({
     .orderBy(desc(affaires.updatedAt))
     .limit(100);
 
-  const [totalVisibleRow, statutAgg, pendingReviewRow] = await Promise.all([
-    db
-      .select({ total: sql<number>`count(*)::int` })
-      .from(affaires)
-      .where(and(...visibleFilters)),
-    db
-      .select({
-        statut: affaires.statut,
-        n: sql<number>`count(*)::int`,
-      })
-      .from(affaires)
-      .where(and(...visibleFilters))
-      .groupBy(affaires.statut),
-    db
-      .select({ n: sql<number>`count(*)::int` })
-      .from(documents)
-      .innerJoin(affaires, eq(documents.affaireId, affaires.id))
-      .where(and(...visibleFilters, eq(documents.statut, "en_revue"))),
-  ]);
+  const [cabinet] = await db
+    .select({ ownerId: cabinets.ownerId })
+    .from(cabinets)
+    .where(eq(cabinets.id, cabinetId))
+    .limit(1);
+
+  const canValidateDocuments = cabinet
+    ? isCabinetAdmin(session, cabinet)
+    : false;
+
+  const [totalVisibleRow, statutAgg, pendingReviewRow, pendingReviewDocs] =
+    await Promise.all([
+      db
+        .select({ total: sql<number>`count(*)::int` })
+        .from(affaires)
+        .where(and(...visibleFilters)),
+      db
+        .select({
+          statut: affaires.statut,
+          n: sql<number>`count(*)::int`,
+        })
+        .from(affaires)
+        .where(and(...visibleFilters))
+        .groupBy(affaires.statut),
+      canValidateDocuments
+        ? db
+            .select({ n: sql<number>`count(*)::int` })
+            .from(documents)
+            .innerJoin(affaires, eq(documents.affaireId, affaires.id))
+            .where(and(...visibleFilters, eq(documents.statut, "en_revue")))
+        : Promise.resolve([{ n: 0 }]),
+      canValidateDocuments
+        ? db
+            .select({
+              documentId: documents.id,
+              documentTitle: documents.titre,
+              documentUpdatedAt: documents.updatedAt,
+              affaireId: affaires.id,
+              affaireReference: affaires.reference,
+              affaireIntitule: affaires.intitule,
+              auteurNom: users.fullName,
+              auteurEmail: users.email,
+              auteurTitre: users.titre,
+            })
+            .from(documents)
+            .innerJoin(affaires, eq(documents.affaireId, affaires.id))
+            .innerJoin(users, eq(documents.auteurId, users.id))
+            .where(and(...visibleFilters, eq(documents.statut, "en_revue")))
+            .orderBy(desc(documents.updatedAt))
+            .limit(1)
+        : Promise.resolve([]),
+    ]);
 
   const totalVisible = Number(totalVisibleRow[0]?.total ?? 0);
   const countsByStatut = { ...ZERO_COUNTS };
@@ -164,12 +260,16 @@ export default async function AffairesListPage({
     }
   }
   const pendingReview = Number(pendingReviewRow[0]?.n ?? 0);
+  const nextPending = pendingReviewDocs[0];
 
   const hasActiveListFilters = Boolean(
     searchParams.q?.trim() ||
       (searchParams.statut && searchParams.statut in STATUTS_AFFAIRE_LABEL) ||
       (searchParams.type && searchParams.type in LABELS_CONTENTIEUX)
   );
+  const visibleCols = parseVisibleColumns(searchParams.cols);
+  const visibleCount = OPTIONAL_COLUMNS.filter((k) => visibleCols[k]).length;
+  const hasAnyOptionalColumn = visibleCount > 0;
 
   return (
     <div className="space-y-5 pb-10">
@@ -211,7 +311,7 @@ export default async function AffairesListPage({
                 className="inline-flex items-center gap-2"
               >
                 <Search className="h-4 w-4 shrink-0" aria-hidden />
-                Corpus OHADA
+                Corpus
                 <ArrowUpRight
                   className="h-3.5 w-3.5 shrink-0 opacity-60"
                   aria-hidden
@@ -232,35 +332,99 @@ export default async function AffairesListPage({
         </div>
       </header>
 
-      {pendingReview > 0 && (
+      {canValidateDocuments && pendingReview > 0 && (
         <div
-          className="flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/[0.07] px-3 py-2.5 text-[13px] text-amber-950 dark:border-amber-500/25 dark:bg-amber-950/20 dark:text-amber-100"
+          className="rounded-lg border border-amber-500/30 bg-amber-500/[0.07] px-3 py-2.5 text-[13px] text-amber-950 dark:border-amber-500/25 dark:bg-amber-950/20 dark:text-amber-100"
           role="status"
         >
-          <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-amber-500/15 text-amber-800 dark:text-amber-200">
-            <FilePenLine className="h-3.5 w-3.5" aria-hidden />
-          </span>
-          <div className="min-w-0 flex-1 space-y-0.5">
-            <p className="font-medium leading-snug">
-              <span className="tabular-nums">{pendingReview}</span> pièce
-              {pendingReview > 1 ? "s" : ""} à valider
-            </p>
-            <p className="text-[12px] leading-snug text-amber-900/80 dark:text-amber-100/75">
-              Soumises en « En revue » — ouvrez l&apos;affaire concernée pour
-              approuver ou rejeter.
-            </p>
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-amber-500/15 text-amber-800 dark:text-amber-200">
+              <FilePenLine className="h-3.5 w-3.5" aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1 space-y-0.5">
+              <p className="font-medium leading-snug">
+                <span className="tabular-nums">{pendingReview}</span> pièce
+                {pendingReview > 1 ? "s" : ""} à valider
+              </p>
+              {nextPending ? (
+                <>
+                  <p className="text-[12px] leading-snug text-amber-900/85 dark:text-amber-100/85">
+                    <span className="font-medium">{nextPending.documentTitle}</span>{" "}
+                    · {nextPending.affaireReference} — {nextPending.affaireIntitule}
+                  </p>
+                  <p className="text-[11px] leading-snug text-amber-900/80 dark:text-amber-100/75">
+                    Soumise par{" "}
+                    {formatMemberDisplayName(
+                      nextPending.auteurNom,
+                      nextPending.auteurEmail,
+                      nextPending.auteurTitre
+                    )}{" "}
+                    · mise à jour le {formatDate(nextPending.documentUpdatedAt)}
+                    {pendingReview > 1
+                      ? ` · +${pendingReview - 1} autre${
+                          pendingReview - 1 > 1 ? "s" : ""
+                        } pièce${pendingReview - 1 > 1 ? "s" : ""}`
+                      : ""}
+                  </p>
+                </>
+              ) : (
+                <p className="text-[12px] leading-snug text-amber-900/80 dark:text-amber-100/75">
+                  Soumises en « En revue » — ouvrez l&apos;affaire concernée pour
+                  approuver ou rejeter.
+                </p>
+              )}
+            </div>
           </div>
+          {nextPending && (
+            <div className="mt-2.5 flex flex-wrap gap-2 pl-11">
+              <Button
+                asChild
+                size="sm"
+                variant="outline"
+                className="h-8 border-amber-700/30 bg-amber-50/70 text-amber-900 hover:bg-amber-100 dark:border-amber-200/30 dark:bg-amber-950/30 dark:text-amber-100 dark:hover:bg-amber-900/45"
+              >
+                <Link
+                  href={`/app/affaires/${nextPending.affaireId}/documents/${nextPending.documentId}`}
+                >
+                  <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+                  Ouvrir la pièce
+                </Link>
+              </Button>
+              <form action={quickValidateDocumentAction}>
+                <input
+                  type="hidden"
+                  name="documentId"
+                  value={nextPending.documentId}
+                />
+                <input
+                  type="hidden"
+                  name="affaireId"
+                  value={nextPending.affaireId}
+                />
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="h-8 bg-emerald-700 text-white hover:bg-emerald-800 dark:bg-emerald-600 dark:hover:bg-emerald-500"
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
+                  Valider directement
+                </Button>
+              </form>
+            </div>
+          )}
         </div>
       )}
 
-      <section aria-label="Synthèse par statut" className="space-y-2">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-heading text-base font-semibold text-brand-ink">
-            Par statut
-          </h2>
-          <p className="text-[11px] text-muted-foreground">
-            Filtrer la liste ci-dessous
-          </p>
+      <section aria-label="Synthèse par statut" className="space-y-3">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h2 className="font-heading text-lg font-semibold text-brand-ink">
+              Par statut
+            </h2>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              Cliquez sur une carte pour filtrer la liste des dossiers
+            </p>
+          </div>
         </div>
         <AffairesStatStrip
           searchParams={searchParams}
@@ -302,13 +466,58 @@ export default async function AffairesListPage({
               )}
             </p>
           </div>
+          <div className="border-b border-brand-justice/10 bg-card/70 px-4 py-2.5">
+            <details className="group">
+              <summary className="flex cursor-pointer list-none items-center gap-2 text-[12px] font-medium text-brand-justice">
+                <Columns3 className="h-3.5 w-3.5" aria-hidden />
+                Colonnes affichées
+                <span className="text-muted-foreground">
+                  ({visibleCount} / {OPTIONAL_COLUMNS.length})
+                </span>
+              </summary>
+              <form method="get" className="mt-2.5 space-y-2">
+                {searchParams.q ? <input type="hidden" name="q" value={searchParams.q} /> : null}
+                {searchParams.statut ? (
+                  <input type="hidden" name="statut" value={searchParams.statut} />
+                ) : null}
+                {searchParams.type ? (
+                  <input type="hidden" name="type" value={searchParams.type} />
+                ) : null}
+                <div className="flex flex-wrap gap-x-4 gap-y-2">
+                  {OPTIONAL_COLUMNS.map((key) => (
+                    <label
+                      key={key}
+                      className="inline-flex items-center gap-1.5 text-[12px] text-foreground"
+                    >
+                      <input
+                        type="checkbox"
+                        name="cols"
+                        value={key}
+                        defaultChecked={visibleCols[key]}
+                        className="h-3.5 w-3.5 rounded border-brand-justice/30"
+                      />
+                      {COLUMN_LABEL[key]}
+                    </label>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button type="submit" size="sm" variant="outline" className="h-7 px-2.5 text-[11px]">
+                    Appliquer
+                  </Button>
+                  <Button asChild type="button" size="sm" variant="ghost" className="h-7 px-2 text-[11px]">
+                    <Link href="/app/affaires">Réinitialiser</Link>
+                  </Button>
+                </div>
+              </form>
+            </details>
+          </div>
 
           <ul className="divide-y divide-brand-justice/10 md:hidden">
             {rows.map((r) => (
               <li key={r.id}>
                 <Link
                   href={`/app/affaires/${r.id}`}
-                  className="flex items-start gap-3 px-4 py-3.5 transition-colors active:bg-brand-parchment-dark/40"
+                  className="flex items-start gap-3 px-4 py-4 transition-colors hover:bg-brand-parchment-dark/25 active:bg-brand-parchment-dark/40"
                 >
                   <div className="min-w-0 flex-1 space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
@@ -342,6 +551,9 @@ export default async function AffairesListPage({
                       )}{" "}
                       · {formatDate(r.updatedAt)}
                     </p>
+                    <p className="pt-1 text-[11px] font-medium text-brand-justice">
+                      Ouvrir le dossier
+                    </p>
                   </div>
                   <ChevronRight
                     className="mt-1 h-5 w-5 shrink-0 text-muted-foreground/60"
@@ -352,27 +564,33 @@ export default async function AffairesListPage({
             ))}
           </ul>
 
-          <div className="hidden md:block">
-            <table className="w-full text-left">
+          <div className="hidden overflow-x-auto md:block">
+            <table className="min-w-[920px] w-full text-left">
             <thead className="bg-brand-parchment-dark/30 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
               <tr>
-                <th className="px-4 py-3">Référence</th>
-                <th className="px-4 py-3">Intitulé</th>
-                <th className="hidden px-4 py-3 lg:table-cell">Contentieux</th>
-                <th className="hidden px-4 py-3 md:table-cell">Responsable</th>
-                <th className="px-4 py-3">Statut</th>
-                <th className="hidden px-4 py-3 text-right lg:table-cell">
-                  Mis à jour
-                </th>
+                <th className="px-4 py-3.5">Référence</th>
+                <th className="px-4 py-3.5">Intitulé</th>
+                {visibleCols.contentieux && (
+                  <th className="hidden px-4 py-3.5 lg:table-cell">Contentieux</th>
+                )}
+                {visibleCols.responsable && (
+                  <th className="hidden px-4 py-3.5 md:table-cell">Responsable</th>
+                )}
+                {visibleCols.statut && <th className="px-4 py-3.5">Statut</th>}
+                {visibleCols.mis_a_jour && (
+                  <th className="hidden px-4 py-3.5 text-right lg:table-cell">
+                    Mis à jour
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-brand-justice/10 text-sm">
               {rows.map((r) => (
                 <tr
                   key={r.id}
-                  className="transition-colors hover:bg-brand-parchment-dark/30"
+                  className="transition-colors hover:bg-brand-parchment-dark/25"
                 >
-                  <td className="px-4 py-3 align-top">
+                  <td className="px-4 py-3.5 align-top">
                     <Link
                       href={`/app/affaires/${r.id}`}
                       className="font-mono text-[12.5px] font-medium tabular-nums text-brand-justice hover:text-brand-gold"
@@ -380,7 +598,7 @@ export default async function AffairesListPage({
                       {r.reference}
                     </Link>
                   </td>
-                  <td className="px-4 py-3 align-top">
+                  <td className="px-4 py-3.5 align-top">
                     <Link
                       href={`/app/affaires/${r.id}`}
                       className="group block min-w-0"
@@ -394,45 +612,59 @@ export default async function AffairesListPage({
                       </p>
                     </Link>
                   </td>
-                  <td className="hidden px-4 py-3 align-top lg:table-cell">
-                    <span className="rounded-full border border-brand-justice/15 bg-card px-2 py-0.5 text-[11px] uppercase tracking-wider text-muted-foreground">
-                      {LABELS_CONTENTIEUX[r.typeContentieux]}
-                    </span>
-                  </td>
-                  <td className="hidden px-4 py-3 align-top md:table-cell">
-                    <p className="text-[12.5px] text-foreground">
-                      {formatMemberDisplayName(
-                        r.responsableNom,
-                        r.responsableEmail,
-                        r.responsableTitre
-                      )}
-                    </p>
-                  </td>
-                  <td className="px-4 py-3 align-top">
-                    <div className="flex flex-col items-start gap-1.5">
-                      <span
-                        className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium uppercase tracking-wider ${STATUTS_AFFAIRE_COLOR[r.statut]}`}
-                      >
-                        {STATUTS_AFFAIRE_LABEL[r.statut]}
+                  {visibleCols.contentieux && (
+                    <td className="hidden px-4 py-3.5 align-top lg:table-cell">
+                      <span className="rounded-full border border-brand-justice/15 bg-card px-2 py-0.5 text-[11px] uppercase tracking-wider text-muted-foreground">
+                        {LABELS_CONTENTIEUX[r.typeContentieux]}
                       </span>
-                      {r.confidentialite === "sensible" && (
+                    </td>
+                  )}
+                  {visibleCols.responsable && (
+                    <td className="hidden px-4 py-3.5 align-top md:table-cell">
+                      <p className="text-[12.5px] text-foreground">
+                        {formatMemberDisplayName(
+                          r.responsableNom,
+                          r.responsableEmail,
+                          r.responsableTitre
+                        )}
+                      </p>
+                    </td>
+                  )}
+                  {visibleCols.statut && (
+                    <td className="px-4 py-3.5 align-top">
+                      <div className="flex flex-col items-start gap-1.5">
                         <span
-                          title="Affaire sensible — accès restreint"
-                          className="inline-flex items-center gap-1 rounded-full border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 text-[10px] uppercase tracking-wider text-rose-700 dark:text-rose-200"
+                          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium uppercase tracking-wider ${STATUTS_AFFAIRE_COLOR[r.statut]}`}
                         >
-                          <ShieldAlert className="h-3 w-3" aria-hidden />
-                          Sensible
+                          {STATUTS_AFFAIRE_LABEL[r.statut]}
                         </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="hidden px-4 py-3 align-top text-right text-[12.5px] text-muted-foreground lg:table-cell">
-                    {formatDate(r.updatedAt)}
-                  </td>
+                        {r.confidentialite === "sensible" && (
+                          <span
+                            title="Affaire sensible — accès restreint"
+                            className="inline-flex items-center gap-1 rounded-full border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 text-[10px] uppercase tracking-wider text-rose-700 dark:text-rose-200"
+                          >
+                            <ShieldAlert className="h-3 w-3" aria-hidden />
+                            Sensible
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                  )}
+                  {visibleCols.mis_a_jour && (
+                    <td className="hidden px-4 py-3.5 align-top text-right text-[12.5px] text-muted-foreground lg:table-cell">
+                      {formatDate(r.updatedAt)}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
           </table>
+          {!hasAnyOptionalColumn && (
+            <p className="border-t border-brand-justice/10 px-4 py-2 text-[12px] text-muted-foreground">
+              Aucune colonne optionnelle affichée. Activez au moins une colonne
+              via « Colonnes affichées ».
+            </p>
+          )}
           </div>
         </section>
       )}

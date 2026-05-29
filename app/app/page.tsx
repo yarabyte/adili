@@ -5,7 +5,7 @@ import { CabinetDashboard } from "@/components/dashboard/cabinet-dashboard";
 import { StudentHome } from "@/components/dashboard/student-home";
 import { getRecentActivity } from "@/lib/activity";
 import { getCurrentProfile } from "@/lib/auth/profile";
-import { getCabinetDashboard } from "@/lib/dashboard/get-cabinet-dashboard";
+import { getCabinetDashboardCached } from "@/lib/dashboard/cached";
 import { getCorpusBreakdownCached } from "@/lib/corpus/stats";
 import { formatMemberDisplayName } from "@/lib/users/display-name";
 import { getIntendedPlan } from "@/lib/onboarding/intended-plan";
@@ -69,7 +69,7 @@ export default async function AppHome({
 
   const [activity, dashboard] = await Promise.all([
     session.user.id ? getRecentActivity(session.user.id, 8) : Promise.resolve([]),
-    getCabinetDashboard(session),
+    getCabinetDashboardCached(session),
   ]);
 
   if (!dashboard) redirect("/onboarding/cabinet");

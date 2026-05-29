@@ -1,7 +1,8 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, notInArray } from "drizzle-orm";
 
 import { db } from "@/lib/db/client";
 import { documents, users } from "@/lib/db/schema";
+import { CORRESPONDANCE_TYPES } from "@/lib/documents/correspondance";
 import type { StatutDocument } from "@/lib/constants/statuts";
 import { formatMemberDisplayName } from "@/lib/users/display-name";
 
@@ -31,7 +32,12 @@ export async function DocumentsPanel({
     })
     .from(documents)
     .leftJoin(users, eq(users.id, documents.auteurId))
-    .where(eq(documents.affaireId, affaireId))
+    .where(
+      and(
+        eq(documents.affaireId, affaireId),
+        notInArray(documents.typeDocument, [...CORRESPONDANCE_TYPES])
+      )
+    )
     .orderBy(desc(documents.updatedAt));
 
   const list: DocumentRow[] = rows.map((doc) => ({

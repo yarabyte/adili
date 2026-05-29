@@ -189,11 +189,13 @@ export function DocumentsPanelClient({
           aria-label="Catégorie de document"
         >
           <option value="">Toutes les catégories</option>
-          {DOCUMENT_CATEGORIES.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.label}
-            </option>
-          ))}
+          {DOCUMENT_CATEGORIES.filter((c) => c.id !== "correspondance").map(
+            (c) => (
+              <option key={c.id} value={c.id}>
+                {c.label}
+              </option>
+            )
+          )}
         </select>
 
         <select

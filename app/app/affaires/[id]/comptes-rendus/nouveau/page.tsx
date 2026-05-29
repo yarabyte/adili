@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { ChevronLeft, NotebookPen } from "lucide-react";
 
+import { CrEditLayout } from "@/components/comptes-rendus/cr-edit-layout";
 import { CrForm } from "@/components/comptes-rendus/cr-form";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { db } from "@/lib/db/client";
@@ -84,12 +85,14 @@ export default async function NouveauCompteRenduPage({
         </p>
       </header>
 
-      <CrForm
-        mode="create"
-        affaireId={affaireId}
-        membreOptions={membreOptions}
-        adversaires={adversaires}
-      />
+      <CrEditLayout>
+        <CrForm
+          mode="create"
+          affaireId={affaireId}
+          membreOptions={membreOptions}
+          adversaires={adversaires}
+        />
+      </CrEditLayout>
     </div>
   );
 }

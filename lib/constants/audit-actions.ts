@@ -8,6 +8,8 @@ export const AUDIT_ACTIONS = {
   affaire: [
     "creee",
     "modifiee",
+    "en_cours",
+    "en_delibere",
     "archivee",
     "cloturee",
     "reouverte",
@@ -70,6 +72,8 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   // affaire
   "affaire.creee": "Affaire créée",
   "affaire.modifiee": "Affaire mise à jour",
+  "affaire.en_cours": "Affaire passée en cours",
+  "affaire.en_delibere": "Affaire mise en délibéré",
   "affaire.archivee": "Affaire archivée",
   "affaire.cloturee": "Affaire clôturée",
   "affaire.reouverte": "Affaire rouverte",

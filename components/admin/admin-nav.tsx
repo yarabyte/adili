@@ -87,7 +87,7 @@ export function AdminNav({
             href={item.href}
             onClick={onNavigate}
             className={cn(
-              "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+              "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] font-medium transition-colors",
               active
                 ? "bg-brand-justice text-primary-foreground shadow-sm"
                 : "text-muted-foreground hover:bg-brand-justice/8 hover:text-brand-justice"

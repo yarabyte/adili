@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-provider";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -398,6 +399,7 @@ function EcheanceRow({
   canDelete: boolean;
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [editing, setEditing] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -442,8 +444,14 @@ function EcheanceRow({
     });
   }
 
-  function confirmDelete() {
-    if (!window.confirm("Supprimer définitivement cette échéance ?")) return;
+  async function confirmDelete() {
+    const ok = await confirm({
+      title: "Supprimer cette échéance ?",
+      description: "Cette action est définitive.",
+      confirmLabel: "Supprimer",
+      variant: "destructive",
+    });
+    if (!ok) return;
     startTransition(async () => {
       const res = await deleteEcheance(affaireId, row.id);
       if (res.error) setError(res.error);

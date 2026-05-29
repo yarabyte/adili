@@ -1,60 +1,232 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Editor } from "@tiptap/react";
 import {
-  BookOpen,
-  Hash,
+  ExternalLink,
+  Landmark,
   Loader2,
   Quote,
+  Scale,
+  ScrollText,
   Search,
-  SquareDashedBottom,
+  Sparkles,
 } from "lucide-react";
 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { CorpusExtract } from "@/components/search/corpus-extract";
 import { Button } from "@/components/ui/button";
+import { LABELS_DOCUMENTS } from "@/lib/constants/types-documents";
+import type { SearchHit } from "@/lib/search";
+import { tokenizeQuery } from "@/lib/search-text";
 import { cn } from "@/lib/utils";
 
-/**
- * Recherche un article du corpus et l'insère dans l'éditeur :
- *   • soit comme citation inline (chip "Art. 134 AUDCG")
- *   • soit comme citation bloc (encart avec extrait verbatim)
- *
- * Réutilise /api/search (sémantique + bayésien) ; pour le bloc on
- * récupère le contenu complet via /api/chunks/[id].
- */
-type SearchHit = {
-  chunkId: string;
-  articleNumber: string | null;
-  articleLabel: string | null;
-  snippet: string;
-  source: { id: string; title: string; shortCode: string };
+type CorpusFilter = "all" | "acte_uniforme" | "ccja" | "national";
+
+type Hit = SearchHit;
+
+const FILTERS: { id: CorpusFilter; label: string }[] = [
+  { id: "all", label: "Tous" },
+  { id: "acte_uniforme", label: "Actes Uniformes" },
+  { id: "ccja", label: "CCJA" },
+  { id: "national", label: "Droits nationaux" },
+];
+
+const DEFAULT_SUGGESTIONS = [
+  "Vérifier toutes les références citées dans le document",
+  "Rechercher jurisprudence similaire sur le fondement invoqué",
+  "Comparer avec les dispositions générales OHADA applicables",
+];
+
+const SUGGESTIONS_BY_DOC_TYPE: Record<string, string[]> = {
+  conclusions_fond: [
+    "Générer les demandes reconventionnelles (dommages-intérêts)",
+    "Rechercher jurisprudence similaire : banques Afrique centrale",
+    "Vérifier toutes les références citées dans le document",
+  ],
+  memoire_defense: [
+    "Identifier les moyens de défense sur la prescription",
+    "Rechercher arrêts CCJA sur la même qualification",
+    "Vérifier les références d'actes uniformes invoqués",
+  ],
+  plainte_simple: [
+    "Vérifier les éléments constitutifs de l'infraction",
+    "Rechercher textes nationaux applicables (CP-CM)",
+    "Contrôler la compétence et la juridiction",
+  ],
 };
+
+function inferSourceType(hit: Hit): Hit["source"]["type"] {
+  const code = hit.source.shortCode.toUpperCase();
+  if (hit.source.type) return hit.source.type;
+  if (code.includes("CCJA") || /jurisprudence/i.test(hit.source.title)) {
+    return "ccja";
+  }
+  if (code.endsWith("-CM")) return "national";
+  return "acte_uniforme";
+}
+
+function sourceCategoryLabel(hit: Hit): string {
+  const type = inferSourceType(hit);
+  const title = hit.source.title.toUpperCase();
+  if (type === "ccja") return "CCJA — JURISPRUDENCE";
+  if (type === "national") return `DROIT NATIONAL — ${title}`;
+  return `OHADA — ${title}`;
+}
+
+function cardTitle(hit: Hit): string {
+  const article =
+    hit.articleLabel?.trim() ||
+    (hit.articleNumber ? `Articles ${hit.articleNumber}` : "Article");
+  if (/^articles?\s/i.test(article) || /^art\./i.test(article)) {
+    return article.charAt(0).toUpperCase() + article.slice(1);
+  }
+  return hit.articleNumber
+    ? `Articles ${hit.articleNumber} — ${article}`
+    : article;
+}
+
+function metadataLine(hit: Hit): string {
+  const code = hit.source.shortCode;
+  const parts = [code, "corpus indexé"];
+  if (hit.relevancePercent >= 50) {
+    parts.push(`${hit.relevancePercent} % pertinence`);
+  }
+  return parts.filter(Boolean).join(" · ");
+}
+
+function formatLabel(hit: Hit): string {
+  const article =
+    hit.articleLabel?.trim() ||
+    (hit.articleNumber ? `Art. ${hit.articleNumber}` : "Article");
+  if (hit.source.shortCode && !article.includes(hit.source.shortCode)) {
+    return `${article} ${hit.source.shortCode}`;
+  }
+  return article;
+}
+
+function highlightSnippet(snippet: string, query: string): React.ReactNode {
+  const terms = tokenizeQuery(query);
+  if (terms.length === 0) return snippet;
+
+  const pattern = new RegExp(
+    `(${terms
+      .sort((a, b) => b.length - a.length)
+      .map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+      .join("|")})`,
+    "gi"
+  );
+  const parts = snippet.split(pattern);
+  const termSet = new Set(terms.map((t) => t.toLowerCase()));
+  return parts.map((part, i) => {
+    const norm = part
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/\p{M}/gu, "");
+    const isHit = termSet.has(norm);
+    return isHit ? (
+      <mark
+        key={i}
+        className="rounded-sm bg-amber-200/80 px-0.5 text-foreground"
+      >
+        {part}
+      </mark>
+    ) : (
+      <span key={i}>{part}</span>
+    );
+  });
+}
+
+function SourceIcon({ type }: { type: Hit["source"]["type"] }) {
+  const className = "h-4 w-4";
+  if (type === "ccja") return <Scale className={className} aria-hidden />;
+  if (type === "national") return <Landmark className={className} aria-hidden />;
+  return <ScrollText className={className} aria-hidden />;
+}
+
+function cardStyles(type: Hit["source"]["type"]) {
+  switch (type) {
+    case "ccja":
+      return {
+        border: "border-rose-400/45",
+        iconWrap: "bg-rose-500/10 text-rose-700",
+        sourceText: "text-rose-700",
+      };
+    case "national":
+      return {
+        border: "border-emerald-500/40",
+        iconWrap: "bg-emerald-500/10 text-emerald-800",
+        sourceText: "text-emerald-800",
+      };
+    default:
+      return {
+        border: "border-amber-400/50",
+        iconWrap: "bg-amber-500/10 text-amber-800",
+        sourceText: "text-brand-justice",
+      };
+  }
+}
 
 export function CitationInserter({
   editor,
   disabled,
+  affaireReference,
+  affaireTitre,
+  documentTitre,
+  documentType,
 }: {
   editor: Editor | null;
   disabled: boolean;
+  affaireReference: string;
+  affaireTitre: string;
+  documentTitre: string;
+  documentType: string;
 }) {
   const [query, setQuery] = useState("");
-  const [hits, setHits] = useState<SearchHit[]>([]);
+  const [submittedQuery, setSubmittedQuery] = useState("");
+  const [hits, setHits] = useState<Hit[]>([]);
+  const [filter, setFilter] = useState<CorpusFilter>("all");
   const [loading, setLoading] = useState(false);
+  const [analyzing, setAnalyzing] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [insertingId, setInsertingId] = useState<string | null>(null);
+  const [previewHit, setPreviewHit] = useState<Hit | null>(null);
+  const [previewContent, setPreviewContent] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
-  const search = useCallback(async () => {
-    if (query.trim().length < 3) {
+  const docTypeLabel =
+    LABELS_DOCUMENTS[documentType as keyof typeof LABELS_DOCUMENTS] ??
+    documentType;
+
+  const suggestions = useMemo(
+    () => SUGGESTIONS_BY_DOC_TYPE[documentType] ?? DEFAULT_SUGGESTIONS,
+    [documentType]
+  );
+
+  useEffect(() => {
+    const t = setTimeout(() => setAnalyzing(false), 1200);
+    return () => clearTimeout(t);
+  }, []);
+
+  const search = useCallback(async (raw?: string) => {
+    const q = (raw ?? query).trim();
+    if (q.length < 3) {
       setError("Saisissez au moins 3 caractères.");
       return;
     }
+    setQuery(q);
     setError(null);
     setLoading(true);
     try {
       const res = await fetch("/api/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: query.trim(), limit: 8 }),
+        body: JSON.stringify({ query: q, limit: 12 }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -62,6 +234,7 @@ export function CitationInserter({
         return;
       }
       setHits(Array.isArray(json.hits) ? json.hits : []);
+      setSubmittedQuery(q);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur réseau.");
     } finally {
@@ -69,8 +242,13 @@ export function CitationInserter({
     }
   }, [query]);
 
-  const insertInline = useCallback(
-    (hit: SearchHit) => {
+  const filteredHits = useMemo(() => {
+    if (filter === "all") return hits;
+    return hits.filter((h) => inferSourceType(h) === filter);
+  }, [hits, filter]);
+
+  const insertReference = useCallback(
+    (hit: Hit) => {
       if (!editor || disabled) return;
       const label = formatLabel(hit);
       editor
@@ -82,8 +260,6 @@ export function CitationInserter({
           articleNumber: hit.articleNumber,
           articleLabel: label,
         })
-        // Sort de la marque (inclusive:false) puis ajoute un espace nu
-        // pour que la frappe suivante soit du texte normal.
         .unsetMark("citation")
         .insertContent(" ")
         .run();
@@ -92,7 +268,7 @@ export function CitationInserter({
   );
 
   const insertBlock = useCallback(
-    async (hit: SearchHit) => {
+    async (hit: Hit) => {
       if (!editor || disabled) return;
       setInsertingId(hit.chunkId);
       try {
@@ -126,135 +302,294 @@ export function CitationInserter({
     [editor, disabled]
   );
 
+  const openPreview = useCallback(async (hit: Hit) => {
+    setPreviewHit(hit);
+    setPreviewContent(null);
+    setPreviewLoading(true);
+    try {
+      const res = await fetch(`/api/chunks/${hit.chunkId}`);
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json?.error ?? "Texte indisponible.");
+        setPreviewHit(null);
+        return;
+      }
+      setPreviewContent(String(json.content ?? ""));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur réseau.");
+      setPreviewHit(null);
+    } finally {
+      setPreviewLoading(false);
+    }
+  }, []);
+
   return (
-    <aside className="flex h-full min-h-0 flex-col gap-4 overflow-hidden border-l border-brand-justice/10 bg-card/80 p-4 shadow-[inset_1px_0_0_rgba(0,0,0,0.02)] sm:p-5">
-      <header className="space-y-1.5 border-b border-brand-justice/8 pb-3">
-        <h2 className="flex items-center gap-2 font-heading text-[15px] font-semibold text-brand-ink">
-          <BookOpen className="h-4 w-4 text-brand-justice" aria-hidden />
-          Insérer un article
-        </h2>
-        <p className="text-[12px] leading-relaxed text-muted-foreground">
-          Recherchez un article du corpus OHADA puis insérez-le comme citation
-          courte ou comme extrait verbatim.
-        </p>
-      </header>
-
-      <form
-        className="flex items-center gap-1"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void search();
-        }}
-      >
-        <div className="relative flex-1">
-          <Search
-            className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
-            aria-hidden
-          />
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Ex : prescription action en paiement"
-            className="h-9 w-full rounded-md border border-input bg-background pl-8 pr-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-          />
-        </div>
-        <Button type="submit" size="sm" disabled={loading || disabled}>
-          {loading ? (
-            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-          ) : (
-            "Chercher"
-          )}
-        </Button>
-      </form>
-
-      {error && (
-        <p className="rounded-md border border-destructive/30 bg-destructive/5 px-2.5 py-2 text-[12px] text-destructive">
-          {error}
-        </p>
-      )}
-
-      <div className="-mr-2 min-h-0 flex-1 space-y-2 overflow-y-auto pr-2">
-        {!loading && hits.length === 0 && !error && (
-          <p className="rounded-md border border-dashed border-brand-justice/15 bg-card px-3 py-6 text-center text-[12px] text-muted-foreground">
-            Aucun résultat pour le moment.
-            <br />
-            Lancez une recherche pour insérer une référence.
+    <>
+      <aside className="flex h-full min-h-0 flex-col overflow-hidden border-l border-brand-justice/10 bg-[#f7f4ef]">
+        <div className="flex-shrink-0 space-y-3 border-b border-brand-justice/10 bg-[#f7f4ef] p-4">
+          <p className="flex items-center gap-2 text-[11.5px] text-muted-foreground">
+            {analyzing ? (
+              <>
+                <span className="inline-flex gap-0.5" aria-hidden>
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-brand-justice [animation-delay:0ms]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-brand-justice [animation-delay:150ms]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-brand-justice [animation-delay:300ms]" />
+                </span>
+                Adili analyse le contexte du dossier…
+              </>
+            ) : (
+              <span className="line-clamp-2">
+                <span className="font-medium text-brand-justice">
+                  {affaireReference}
+                </span>
+                {" — "}
+                {documentTitre}
+              </span>
+            )}
           </p>
-        )}
 
-        {hits.map((hit) => {
-          const label = formatLabel(hit);
-          const inserting = insertingId === hit.chunkId;
-          return (
-            <article
-              key={hit.chunkId}
-              className="space-y-2 rounded-lg border border-brand-justice/10 bg-brand-parchment/30 p-3 transition hover:border-brand-justice/20 hover:bg-card"
-            >
-              <header className="flex items-start gap-2">
-                <Hash
-                  className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-brand-justice"
-                  aria-hidden
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] font-medium text-foreground">
-                    {label}
-                  </p>
-                  <p className="truncate text-[11px] text-muted-foreground">
-                    {hit.source.title}
-                  </p>
-                </div>
-              </header>
-              <p className="line-clamp-3 text-[12.5px] leading-relaxed text-muted-foreground">
-                {hit.snippet}
-              </p>
-              <div className="flex items-center justify-end gap-1.5 pt-1">
-                <button
-                  type="button"
-                  onClick={() => insertInline(hit)}
-                  disabled={disabled || inserting}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 rounded-md border border-brand-justice/15 px-2 py-1 text-[12px] font-medium text-foreground transition hover:bg-brand-parchment-dark/50",
-                    "disabled:cursor-not-allowed disabled:opacity-50"
-                  )}
-                  title="Insérer comme citation inline"
-                >
-                  <Quote className="h-3.5 w-3.5" aria-hidden />
-                  Inline
-                </button>
-                <button
-                  type="button"
-                  onClick={() => insertBlock(hit)}
-                  disabled={disabled || inserting}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 rounded-md border border-brand-justice/30 bg-brand-justice/5 px-2 py-1 text-[12px] font-medium text-brand-justice transition hover:bg-brand-justice/10",
-                    "disabled:cursor-not-allowed disabled:opacity-50"
-                  )}
-                  title="Insérer comme bloc verbatim"
-                >
-                  {inserting ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
-                  ) : (
-                    <SquareDashedBottom className="h-3.5 w-3.5" aria-hidden />
-                  )}
-                  Bloc
-                </button>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void search();
+            }}
+          >
+            <div className="flex items-center gap-2 rounded-lg border border-brand-justice/15 bg-white px-3 py-2 shadow-sm">
+              <Search
+                className="h-4 w-4 shrink-0 text-muted-foreground"
+                aria-hidden
+              />
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="compensation unilatérale crédit commercial OH…"
+                className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted-foreground/70"
+                aria-label="Rechercher dans le corpus"
+              />
+              <Button
+                type="submit"
+                size="sm"
+                disabled={loading || query.trim().length < 3}
+                className="h-7 shrink-0 px-2.5 text-[11px] font-semibold"
+                aria-label={loading ? "Recherche en cours" : "Envoyer la recherche"}
+              >
+                {loading ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                ) : (
+                  "Envoyer"
+                )}
+              </Button>
+            </div>
+          </form>
+
+          <div className="flex flex-wrap gap-1.5">
+            {FILTERS.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => setFilter(f.id)}
+                className={cn(
+                  "rounded-full px-2.5 py-1 text-[11px] font-medium transition",
+                  filter === f.id
+                    ? "bg-brand-justice text-white shadow-sm"
+                    : "bg-white/80 text-muted-foreground hover:bg-white"
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+          {error && (
+            <p className="mb-3 rounded-md border border-destructive/30 bg-destructive/5 px-2.5 py-2 text-[12px] text-destructive">
+              {error}
+            </p>
+          )}
+
+          {loading && (
+            <div className="flex items-center justify-center gap-2 py-12 text-[13px] text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              Recherche en cours…
+            </div>
+          )}
+
+          {!loading && hits.length > 0 && (
+            <>
+              <div className="mb-2 flex items-center justify-between px-0.5">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/80">
+                  Résultats pertinents
+                </p>
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-brand-justice">
+                  {filteredHits.length} source
+                  {filteredHits.length > 1 ? "s" : ""}
+                </span>
               </div>
-            </article>
-          );
-        })}
-      </div>
-    </aside>
-  );
-}
 
-function formatLabel(hit: SearchHit): string {
-  const article =
-    hit.articleLabel?.trim() ||
-    (hit.articleNumber ? `Art. ${hit.articleNumber}` : "Article");
-  // Si "Art. 134 AUDCG" est déjà complet on évite la double-mention.
-  if (hit.source.shortCode && !article.includes(hit.source.shortCode)) {
-    return `${article} ${hit.source.shortCode}`;
-  }
-  return article;
+              <ul className="space-y-3">
+                {filteredHits.map((hit) => {
+                  const type = inferSourceType(hit);
+                  const styles = cardStyles(type);
+                  const inserting = insertingId === hit.chunkId;
+                  return (
+                    <li key={hit.chunkId}>
+                      <article
+                        className={cn(
+                          "overflow-hidden rounded-lg border-2 bg-white shadow-sm",
+                          styles.border
+                        )}
+                      >
+                        <div className="p-3">
+                          <div className="flex gap-2.5">
+                            <div
+                              className={cn(
+                                "flex h-9 w-9 shrink-0 items-center justify-center rounded-md",
+                                styles.iconWrap
+                              )}
+                            >
+                              <SourceIcon type={type} />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p
+                                className={cn(
+                                  "text-[10px] font-semibold uppercase tracking-wide",
+                                  styles.sourceText
+                                )}
+                              >
+                                {sourceCategoryLabel(hit)}
+                              </p>
+                              <h3 className="mt-0.5 text-[13px] font-semibold leading-snug text-foreground">
+                                {cardTitle(hit)}
+                              </h3>
+                              <p className="mt-1 text-[10.5px] text-muted-foreground">
+                                {metadataLine(hit)}
+                              </p>
+                            </div>
+                          </div>
+
+                          <p className="mt-2.5 text-[12px] leading-relaxed text-muted-foreground">
+                            {highlightSnippet(
+                              hit.snippet,
+                              submittedQuery || query
+                            )}
+                          </p>
+
+                          <div className="mt-3 flex flex-wrap gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => void insertBlock(hit)}
+                              disabled={disabled || inserting}
+                              className="inline-flex items-center gap-1.5 rounded-md bg-brand-justice px-2.5 py-1.5 text-[11.5px] font-medium text-white transition hover:bg-brand-justice/90 disabled:opacity-50"
+                            >
+                              {inserting ? (
+                                <Loader2
+                                  className="h-3.5 w-3.5 animate-spin"
+                                  aria-hidden
+                                />
+                              ) : (
+                                <Sparkles className="h-3.5 w-3.5" aria-hidden />
+                              )}
+                              Insérer
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => insertReference(hit)}
+                              disabled={disabled || inserting}
+                              className="inline-flex items-center gap-1.5 rounded-md border border-brand-justice/15 bg-brand-parchment/40 px-2.5 py-1.5 text-[11.5px] font-medium text-foreground transition hover:bg-brand-parchment disabled:opacity-50"
+                            >
+                              <Quote className="h-3.5 w-3.5" aria-hidden />
+                              Insérer la réf.
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void openPreview(hit)}
+                              className="inline-flex items-center gap-1.5 rounded-md border border-brand-justice/15 bg-brand-parchment/40 px-2.5 py-1.5 text-[11.5px] font-medium text-foreground transition hover:bg-brand-parchment"
+                            >
+                              <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+                              Voir texte
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    </li>
+                  );
+                })}
+              </ul>
+
+              {filteredHits.length === 0 && (
+                <p className="py-6 text-center text-[12px] text-muted-foreground">
+                  Aucun résultat pour ce filtre. Essayez « Tous ».
+                </p>
+              )}
+            </>
+          )}
+
+          {!loading && hits.length === 0 && !error && (
+            <p className="rounded-lg border border-dashed border-brand-justice/15 bg-white/60 px-3 py-8 text-center text-[12px] text-muted-foreground">
+              Recherchez un article du corpus, CCJA ou droit national
+              camerounais pour l&apos;insérer dans votre {docTypeLabel.toLowerCase()}.
+            </p>
+          )}
+
+          <div className="mt-5 rounded-lg border border-brand-justice/10 bg-white/70 p-3">
+            <p className="mb-2.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              <Sparkles className="h-3 w-3 text-brand-gold" aria-hidden />
+              Suggestions Adili pour ce dossier
+            </p>
+            <ul className="space-y-2">
+              {suggestions.map((s) => (
+                <li key={s}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuery(s);
+                      void search(s);
+                    }}
+                    className="flex w-full items-start gap-2 rounded-md px-1 py-0.5 text-left text-[12px] leading-snug text-foreground/85 transition hover:bg-brand-parchment/50"
+                  >
+                    <span
+                      className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-gold"
+                      aria-hidden
+                    />
+                    {s}
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 truncate text-[10px] text-muted-foreground/70">
+              {affaireTitre}
+            </p>
+          </div>
+        </div>
+      </aside>
+
+      <Dialog
+        open={Boolean(previewHit)}
+        onOpenChange={(open) => !open && setPreviewHit(null)}
+      >
+        <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-heading text-lg">
+              {previewHit ? cardTitle(previewHit) : "Texte source"}
+            </DialogTitle>
+            {previewHit && (
+              <p className="text-sm text-muted-foreground">
+                {sourceCategoryLabel(previewHit)}
+              </p>
+            )}
+          </DialogHeader>
+          {previewLoading ? (
+            <div className="flex items-center gap-2 py-8 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Chargement…
+            </div>
+          ) : previewContent ? (
+            <CorpusExtract text={previewContent} />
+          ) : null}
+        </DialogContent>
+      </Dialog>
+    </>
+  );
 }

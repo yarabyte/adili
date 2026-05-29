@@ -61,6 +61,10 @@ function normalizeDecisionsActions(
   return items.map((item) => ({
     ...item,
     id: item.id || randomUUID(),
+    // Rappel actif uniquement pour une action non faite avec échéance.
+    rappelActif: Boolean(
+      item.type === "action" && !item.fait && item.deadline
+    ),
   }));
 }
 
@@ -98,6 +102,13 @@ function revalidateAffaireCr(affaireId: string, compteRenduId?: string) {
     );
     revalidatePath(`/app/affaires/${affaireId}/comptes-rendus/nouveau`);
   }
+}
+
+/** Invalidation légère après mise à jour des métadonnées (sans recharger toute l'affaire). */
+function revalidateCompteRenduPage(affaireId: string, compteRenduId: string) {
+  revalidatePath(
+    `/app/affaires/${affaireId}/comptes-rendus/${compteRenduId}`
+  );
 }
 
 // ─── Création ────────────────────────────────────────────────────
@@ -213,7 +224,10 @@ export async function updateCompteRendu(
   }
 
   const [existing] = await db
-    .select()
+    .select({
+      statut: comptesRendus.statut,
+      confidentialite: comptesRendus.confidentialite,
+    })
     .from(comptesRendus)
     .where(eq(comptesRendus.id, id))
     .limit(1);
@@ -277,7 +291,7 @@ export async function updateCompteRendu(
 
   await db.update(comptesRendus).set(setValues).where(eq(comptesRendus.id, id));
 
-  await logAction({
+  void logAction({
     action: "compte_rendu.edite",
     cabinetId: auth.cabinetId,
     affaireId,
@@ -285,7 +299,7 @@ export async function updateCompteRendu(
     userId: session.user.id,
   });
 
-  revalidateAffaireCr(affaireId, id);
+  revalidateCompteRenduPage(affaireId, id);
   return { ok: true, compteRenduId: id };
 }
 
@@ -313,13 +327,6 @@ export async function saveCompteRenduCorps(
     return { error: "Ce compte rendu est en lecture seule." };
   }
 
-  const [existing] = await db
-    .select()
-    .from(comptesRendus)
-    .where(eq(comptesRendus.id, compteRenduId))
-    .limit(1);
-  if (!existing) return { error: "Compte rendu introuvable." };
-
   const data = parsed.data;
   const setValues: Partial<typeof comptesRendus.$inferInsert> = {
     corpsTiptap: data.corpsTiptap as object,
@@ -346,7 +353,7 @@ export async function saveCompteRenduCorps(
     setValues.dateEvenement = d;
   }
 
-  if (existing.statut === "rejete") {
+  if (auth.compteRendu.statut === "rejete") {
     setValues.statut = "brouillon";
   }
 
@@ -356,31 +363,48 @@ export async function saveCompteRenduCorps(
     .where(eq(comptesRendus.id, compteRenduId));
 
   if (data.createSnapshot) {
-    const snap = formulaireSnapshotFromRow({
-      ...existing,
-      ...setValues,
-      dateEvenement:
-        (setValues.dateEvenement as Date | undefined) ?? existing.dateEvenement,
-    });
-    await createCompteRenduVersionSnapshot({
+    const [row] = await db
+      .select({
+        typeCr: comptesRendus.typeCr,
+        titre: comptesRendus.titre,
+        dateEvenement: comptesRendus.dateEvenement,
+        dureeMinutes: comptesRendus.dureeMinutes,
+        lieu: comptesRendus.lieu,
+        participants: comptesRendus.participants,
+        decisionsActions: comptesRendus.decisionsActions,
+        piecesRemises: comptesRendus.piecesRemises,
+        soumisValidation: comptesRendus.soumisValidation,
+        confidentialite: comptesRendus.confidentialite,
+      })
+      .from(comptesRendus)
+      .where(eq(comptesRendus.id, compteRenduId))
+      .limit(1);
+    if (row) {
+      const snap = formulaireSnapshotFromRow({
+        ...row,
+        ...setValues,
+        dateEvenement:
+          (setValues.dateEvenement as Date | undefined) ?? row.dateEvenement,
+      });
+      await createCompteRenduVersionSnapshot({
+        compteRenduId,
+        trigger: "manuel",
+        userId: session.user.id,
+        corpsTiptap: data.corpsTiptap,
+        corpsText: data.corpsText,
+        formulaireSnapshot: snap,
+      });
+    }
+    await logAction({
+      action: "compte_rendu.edite",
+      cabinetId: auth.cabinetId,
+      affaireId: auth.affaireId,
       compteRenduId,
-      trigger: "manuel",
       userId: session.user.id,
-      corpsTiptap: data.corpsTiptap,
-      corpsText: data.corpsText,
-      formulaireSnapshot: snap,
     });
+    revalidateAffaireCr(auth.affaireId, compteRenduId);
   }
 
-  await logAction({
-    action: data.createSnapshot ? "compte_rendu.edite" : "compte_rendu.edite",
-    cabinetId: auth.cabinetId,
-    affaireId: auth.affaireId,
-    compteRenduId,
-    userId: session.user.id,
-  });
-
-  revalidateAffaireCr(auth.affaireId, compteRenduId);
   return { ok: true, compteRenduId };
 }
 

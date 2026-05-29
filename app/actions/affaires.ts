@@ -335,11 +335,23 @@ export async function updateAffaire(
   return { ok: true, affaireId };
 }
 
-// ─── ARCHIVER / CLÔTURER (raccourcis de update) ───────────────────
-async function setStatut(
+// ─── Changement de statut (workflow affaire) ──────────────────────
+type AffaireStatut =
+  | "ouvert"
+  | "en_cours"
+  | "en_delibere"
+  | "clos"
+  | "archive";
+
+async function setAffaireStatut(
   affaireId: string,
-  statut: "archive" | "clos" | "ouvert" | "en_cours",
-  auditAction: "affaire.archivee" | "affaire.cloturee" | "affaire.reouverte"
+  statut: AffaireStatut,
+  auditAction:
+    | "affaire.en_cours"
+    | "affaire.en_delibere"
+    | "affaire.archivee"
+    | "affaire.cloturee"
+    | "affaire.reouverte"
 ): Promise<AffaireActionState> {
   const session = await getCurrentProfile();
   if (!session) return { error: "Session expirée." };
@@ -364,16 +376,24 @@ async function setStatut(
   return { ok: true, affaireId };
 }
 
+export async function markAffaireEnCours(affaireId: string) {
+  return setAffaireStatut(affaireId, "en_cours", "affaire.en_cours");
+}
+
+export async function markAffaireEnDelibere(affaireId: string) {
+  return setAffaireStatut(affaireId, "en_delibere", "affaire.en_delibere");
+}
+
 export async function archiveAffaire(affaireId: string) {
-  return setStatut(affaireId, "archive", "affaire.archivee");
+  return setAffaireStatut(affaireId, "archive", "affaire.archivee");
 }
 
 export async function closeAffaire(affaireId: string) {
-  return setStatut(affaireId, "clos", "affaire.cloturee");
+  return setAffaireStatut(affaireId, "clos", "affaire.cloturee");
 }
 
 export async function reopenAffaire(affaireId: string) {
-  return setStatut(affaireId, "en_cours", "affaire.reouverte");
+  return setAffaireStatut(affaireId, "en_cours", "affaire.reouverte");
 }
 
 // ─── DELETE (admin cabinet seulement) ─────────────────────────────

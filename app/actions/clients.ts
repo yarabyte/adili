@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 
 import { db } from "@/lib/db/client";
-import { clients } from "@/lib/db/schema";
-import { getCurrentProfile } from "@/lib/auth/profile";
+import { cabinets, clients } from "@/lib/db/schema";
+import { getCurrentProfile, isCabinetOwner } from "@/lib/auth/profile";
 import { CreateClientZ, UpdateClientZ } from "@/lib/validation/affaires";
 
 export type ClientActionState = {
@@ -23,6 +23,33 @@ function flattenFieldErrors(
     if (v && v[0]) out[k] = v[0];
   }
   return out;
+}
+
+function revalidateClientPaths(clientId?: string) {
+  revalidatePath("/app/clients");
+  revalidatePath("/app/affaires/nouvelle");
+  if (clientId) revalidatePath(`/app/clients/${clientId}`);
+}
+
+async function assertCabinetOwnerCanDelete(
+  session: NonNullable<Awaited<ReturnType<typeof getCurrentProfile>>>
+): Promise<ClientActionState | null> {
+  const cabinetId = session.profile?.cabinetId;
+  if (!cabinetId) return { error: "Session expirée ou cabinet manquant." };
+
+  const [cabinet] = await db
+    .select({ ownerId: cabinets.ownerId })
+    .from(cabinets)
+    .where(eq(cabinets.id, cabinetId))
+    .limit(1);
+
+  if (!cabinet || !isCabinetOwner(session, cabinet)) {
+    return {
+      error: "Seul le propriétaire du cabinet peut supprimer un client.",
+    };
+  }
+
+  return null;
 }
 
 export async function createClient(
@@ -66,7 +93,7 @@ export async function createClient(
 
   if (!created) return { error: "Création du client impossible." };
 
-  revalidatePath("/app/clients");
+  revalidateClientPaths(created.id);
   return { ok: true, clientId: created.id };
 }
 
@@ -109,8 +136,7 @@ export async function updateClient(
     return { error: "Client introuvable dans votre cabinet." };
   }
 
-  revalidatePath("/app/clients");
-  revalidatePath(`/app/clients/${clientId}`);
+  revalidateClientPaths(clientId);
   return { ok: true, clientId };
 }
 
@@ -121,6 +147,9 @@ export async function deleteClient(
   if (!session?.profile?.cabinetId) {
     return { error: "Session expirée ou cabinet manquant." };
   }
+
+  const ownerError = await assertCabinetOwnerCanDelete(session);
+  if (ownerError) return ownerError;
 
   try {
     const result = await db
@@ -148,6 +177,6 @@ export async function deleteClient(
     return { error: "Suppression impossible." };
   }
 
-  revalidatePath("/app/clients");
+  revalidateClientPaths();
   return { ok: true };
 }

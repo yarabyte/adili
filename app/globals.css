@@ -105,6 +105,48 @@
   }
 }
 
+/* Cabinet, admin, espace étudiant : corps de texte plus lisible. */
+@layer components {
+  .adili-workspace {
+    font-size: 1rem; /* 16px */
+    line-height: 1.55;
+  }
+
+  .adili-workspace :where(.text-xs) {
+    font-size: 0.875rem; /* 14px */
+    line-height: 1.45;
+  }
+
+  .adili-workspace :where(.text-sm) {
+    font-size: 0.9375rem; /* 15px */
+    line-height: 1.5;
+  }
+
+  .adili-workspace :where([class*="text-[10px]"]) {
+    font-size: 0.8125rem; /* 13px */
+  }
+
+  .adili-workspace :where([class*="text-[11px]"]) {
+    font-size: 0.875rem; /* 14px */
+  }
+
+  .adili-workspace :where([class*="text-[12px]"]) {
+    font-size: 0.9375rem; /* 15px */
+  }
+
+  .adili-workspace :where([class*="text-[12.5px]"]) {
+    font-size: 0.9375rem;
+  }
+
+  .adili-workspace :where([class*="text-[13px]"]) {
+    font-size: 0.9375rem;
+  }
+
+  .adili-workspace :where(input, select, textarea, button) {
+    font-size: inherit;
+  }
+}
+
 @layer utilities {
   @keyframes adili-cite-pulse {
     0% {
@@ -248,5 +290,50 @@
 
 .tiptap-document .adili-citation-block p:last-of-type {
   @apply mb-0;
+}
+
+/* ─── Éditeur compte rendu (corps plus compact) ─────────────────── */
+.tiptap-compte-rendu .ProseMirror {
+  @apply min-h-[280px] text-[13px] leading-[1.65] text-foreground outline-none;
+  font-feature-settings: "kern", "liga", "calt";
+}
+
+.tiptap-compte-rendu .ProseMirror p {
+  @apply my-2.5;
+}
+
+.tiptap-compte-rendu .ProseMirror h1 {
+  @apply mb-2 mt-4 font-heading text-lg font-semibold text-foreground;
+}
+
+.tiptap-compte-rendu .ProseMirror h2 {
+  @apply mb-1.5 mt-4 font-heading text-[15px] font-semibold text-foreground;
+}
+
+.tiptap-compte-rendu .ProseMirror h3 {
+  @apply mb-1.5 mt-3 font-heading text-sm font-semibold text-foreground;
+}
+
+.tiptap-compte-rendu .ProseMirror ul {
+  @apply my-2 list-disc pl-5;
+}
+
+.tiptap-compte-rendu .ProseMirror ol {
+  @apply my-2 list-decimal pl-5;
+}
+
+.tiptap-compte-rendu .ProseMirror li > p {
+  @apply my-0.5;
+}
+
+.tiptap-compte-rendu .ProseMirror blockquote {
+  @apply my-3 border-l-2 border-brand-justice/30 pl-3 text-[12.5px] italic text-muted-foreground;
+}
+
+.tiptap-compte-rendu .ProseMirror p.is-editor-empty:first-child::before {
+  @apply pointer-events-none text-[13px] text-muted-foreground;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
 }
 

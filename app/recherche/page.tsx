@@ -18,7 +18,7 @@ import { SearchClient } from "./search-client";
 
 export const metadata = {
   title: "Recherche · Adili",
-  description: "Recherche sémantique dans le corpus OHADA.",
+  description: "Recherche sémantique dans le corpus.",
 };
 
 export const dynamic = "force-dynamic";

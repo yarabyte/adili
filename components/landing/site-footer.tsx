@@ -58,7 +58,7 @@ export function SiteFooter({ stats, homeHref = "" }: SiteFooterProps) {
             praticien.
           </p>
           <p className="text-sm font-medium tabular-nums text-brand-gold-soft">
-            Corpus OHADA — {corpusLine}
+            Corpus — {corpusLine}
           </p>
         </div>
         <FooterColumn

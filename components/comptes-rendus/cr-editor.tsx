@@ -7,6 +7,7 @@ import Placeholder from "@tiptap/extension-placeholder";
 import { Cloud, CloudOff, Loader2 } from "lucide-react";
 
 import { saveCompteRenduCorps } from "@/app/actions/comptes-rendus";
+import { useCrSaveQueue } from "@/components/comptes-rendus/cr-save-queue";
 import { useDocumentAutosave } from "@/hooks/use-document-autosave";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +24,8 @@ export function CrEditor({
   initialContent: unknown;
   readOnly: boolean;
 }) {
+  const { enqueue, formSaving } = useCrSaveQueue();
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -40,18 +43,20 @@ export function CrEditor({
 
   const saveFn = useCallback(
     async (payload: { corpsTiptap: unknown; corpsText: string }) => {
-      return saveCompteRenduCorps(compteRenduId, {
-        corpsTiptap: payload.corpsTiptap,
-        corpsText: payload.corpsText,
-        createSnapshot: false,
-      });
+      return enqueue(() =>
+        saveCompteRenduCorps(compteRenduId, {
+          corpsTiptap: payload.corpsTiptap,
+          corpsText: payload.corpsText,
+          createSnapshot: false,
+        })
+      );
     },
-    [compteRenduId]
+    [compteRenduId, enqueue]
   );
 
   const { status, trigger, saveNow } = useDocumentAutosave({
-    enabled: !readOnly && Boolean(editor),
-    delayMs: 1500,
+    enabled: !readOnly && Boolean(editor) && !formSaving,
+    delayMs: 2500,
     save: saveFn,
   });
 
@@ -130,7 +135,7 @@ export function CrEditor({
       <EditorContent
         editor={editor}
         className={cn(
-          "prose prose-sm max-w-none min-h-[280px] rounded-xl border border-brand-justice/12 bg-card px-4 py-3 focus-within:ring-1 focus-within:ring-ring",
+          "tiptap-compte-rendu max-w-none rounded-xl border border-brand-justice/12 bg-card px-4 py-3 focus-within:ring-1 focus-within:ring-ring",
           readOnly && "opacity-90"
         )}
         onBlur={() => {

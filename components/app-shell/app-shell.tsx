@@ -1,14 +1,12 @@
+import { ConfirmProvider } from "@/components/ui/confirm-provider";
+
 import { AppMain } from "./app-main";
 import { IdleSessionGuard } from "./idle-session-guard";
 import { Sidebar } from "./sidebar";
 import { StatusBar } from "./status-bar";
 import { TopBar } from "./top-bar";
 
-export type RecentAffaireSidebarItem = {
-  id: string;
-  reference: string;
-  intitule: string;
-};
+export type { RecentAffaireSidebarItem } from "@/lib/affaires/recent-sidebar";
 
 export type AppShellData = {
   initials: string;
@@ -30,9 +28,9 @@ type AppShellProps = {
 
 export function AppShell({ data, children }: AppShellProps) {
   return (
-    <>
+    <ConfirmProvider>
       <IdleSessionGuard />
-      <div className="grid h-[100dvh] grid-rows-[auto_1fr_auto] bg-brand-parchment text-foreground">
+      <div className="adili-workspace grid h-[100dvh] grid-rows-[auto_1fr_auto] bg-brand-parchment text-foreground">
         <TopBar
           initials={data.initials}
           displayName={data.displayName}
@@ -47,6 +45,6 @@ export function AppShell({ data, children }: AppShellProps) {
         </div>
         <StatusBar sources={data.sources} chunks={data.chunks} />
       </div>
-    </>
+    </ConfirmProvider>
   );
 }

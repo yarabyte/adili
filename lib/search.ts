@@ -10,8 +10,13 @@ import {
   type ChunkRatingStats,
 } from "./ranking";
 import {
+  lexicalRelevanceScore,
+  passesRelevanceGate,
+  tokenHitStatsForRow,
+} from "./search-relevance";
+import {
   distanceToRelevancePercent,
-  searchHitSnippet,
+  searchHitSnippetForQuery,
 } from "./search-snippet";
 
 export type SearchHit = {
@@ -26,6 +31,7 @@ export type SearchHit = {
     id: string;
     title: string;
     shortCode: string;
+    type: "acte_uniforme" | "ccja" | "national";
   };
   /** Feedback praticiens (re-ranking bayésien). `boost` ∈ [-0.2, +0.2]. */
   rating: {
@@ -38,11 +44,55 @@ export type SearchHit = {
   };
 };
 
-type QueryIntent = "fiscal" | "travail" | "constitution" | "commerce" | "penal" | "general";
+type QueryIntent =
+  | "fiscal"
+  | "travail"
+  | "constitution"
+  | "commerce"
+  | "penal"
+  | "famille_civil"
+  | "suretes"
+  | "ohada_commercial"
+  | "general";
+
+const SURETES_CODES = new Set([
+  "AUS-2010",
+  "AUS-1997",
+  "AUSCGIE-2014",
+  "AUSCGIE-1997",
+  "AUSCOOP-2010",
+]);
+
+const OHADA_COMMERCE_CODES = new Set([
+  "AUDCG-2010",
+  "AUDCG-1997",
+  "AUS-2010",
+  "AUS-1997",
+  "AUPC-2010",
+  "AUPC-1997",
+]);
 
 function detectQueryIntent(query: string): QueryIntent {
   if (
-    /imp[ôo]t|fiscal|\btva\b|\bis\b|\birpp\b|\bcgi\b|code\s+g[ée]n[ée]ral\s+des\s+imp[ôo]ts/i.test(
+    /mariage|mari[ée]s?|divorce|filiation|maire|mairie|c[ée]l[ée]bration|officier\s+d'?état\s+civil|[ée]tat\s+civil|naissance|d[ée]c[èe]s|conjoint|[ée]poux|p[èe]re|m[èe]re|union\s+civile/i.test(
+      query
+    )
+  )
+    return "famille_civil";
+  if (
+    /sûret|suret|hypothèque|gage|nantissement|privilège|auscg|droit des sûretés/i.test(
+      query
+    )
+  )
+    return "suretes";
+  if (
+    /compensation|crédit commercial|compte bancaire|chèque|effet de commerce|banque|débit|crédit\s+unilatéral/i.test(
+      query
+    )
+  )
+    return "ohada_commercial";
+  if (
+    /imp[ôo]t|fiscal|\btva\b|\birpp\b|\bcgi\b|code\s+g[ée]n[ée]ral\s+des\s+imp[ôo]ts|impôt\s+sur/i.test(
       query
     )
   )
@@ -73,35 +123,48 @@ function intentSourceBoost(intent: QueryIntent, shortCode: string): number {
   const code = shortCode.toUpperCase();
   switch (intent) {
     case "fiscal":
-      return code === "CGI-CM" ? 1.35 : 0.9;
+      return code === "CGI-CM" ? 1.28 : code.includes("CGI") ? 1.12 : 0.94;
     case "travail":
-      return code === "CT-CM" ? 1.35 : 0.9;
+      return code === "CT-CM" ? 1.28 : 0.94;
     case "constitution":
-      return code === "CONST-CM" ? 1.4 : 0.88;
+      return code === "CONST-CM" ? 1.32 : 0.9;
     case "commerce":
-      return code === "LAC-CM" ? 1.35 : 0.9;
+      return code === "LAC-CM" ? 1.28 : OHADA_COMMERCE_CODES.has(code) ? 1.1 : 0.94;
     case "penal":
-      return code === "CP-CM" ? 1.3 : 0.92;
+      return code === "CP-CM" ? 1.25 : 0.94;
+    case "famille_civil":
+      if (code === "CGI-CM") return 0.72;
+      if (code === "CONST-CM") return 1.26;
+      if (code === "CPC-CM") return 1.14;
+      if (code === "CT-CM" || code === "LAC-CM") return 0.88;
+      return 0.95;
+    case "suretes":
+      return SURETES_CODES.has(code) ? 1.3 : OHADA_COMMERCE_CODES.has(code) ? 1.05 : 0.92;
+    case "ohada_commercial":
+      return OHADA_COMMERCE_CODES.has(code) ? 1.22 : code === "LAC-CM" ? 1.08 : 0.94;
     default:
       return 1;
   }
 }
 
-function intentPrimaryShortCode(intent: QueryIntent): string | null {
-  switch (intent) {
-    case "fiscal":
-      return "CGI-CM";
-    case "travail":
-      return "CT-CM";
-    case "constitution":
-      return "CONST-CM";
-    case "commerce":
-      return "LAC-CM";
-    case "penal":
-      return "CP-CM";
-    default:
-      return null;
-  }
+function corpusTypeBoost(
+  query: string,
+  sourceType: "acte_uniforme" | "ccja" | "national"
+): number {
+  if (
+    /ohada|acte\s+uniforme|audcg|aua|aupc|auscg|droit\s+uniforme/i.test(query) &&
+    sourceType === "acte_uniforme"
+  )
+    return 1.06;
+  if (/ccja|cour\s+commune/i.test(query) && sourceType === "ccja") return 1.08;
+  if (
+    /cameroun|national|cp-cm|cgi-cm|const-cm|l[ée]gislation\s+nationale/i.test(
+      query
+    ) &&
+    sourceType === "national"
+  )
+    return 1.06;
+  return 1;
 }
 
 /**
@@ -110,6 +173,15 @@ function intentPrimaryShortCode(intent: QueryIntent): string | null {
 function queryTextForEmbedding(userQuery: string): string {
   const t = userQuery.trim();
   const intent = detectQueryIntent(t);
+  if (intent === "famille_civil") {
+    return `Droit civil et état civil au Cameroun (mariage, famille, mairie, célébration). ${t}`;
+  }
+  if (intent === "suretes") {
+    return `Droit OHADA des sûretés (AUS, AUSCGIE). ${t}`;
+  }
+  if (intent === "ohada_commercial") {
+    return `Droit OHADA commercial et bancaire (AUDCG, compensation, crédit). ${t}`;
+  }
   if (intent === "fiscal") {
     return `Droit fiscal de la République du Cameroun (Code général des impôts). ${t}`;
   }
@@ -136,9 +208,9 @@ function queryTextForEmbedding(userQuery: string): string {
 }
 
 /**
- * Recherche sémantique dans le corpus juridique.
- * Embeddings Voyage (input_type=query), distance cosinus pgvector via Drizzle,
- * puis re-ranking bayésien par les notes praticiens (table search_ratings).
+ * Recherche hybride dans le corpus juridique.
+ * Embeddings Voyage (input_type=query), distance cosinus pgvector,
+ * re-ranking lexical (articles, codes, termes) + bayésien (notes praticiens).
  */
 export async function searchChunks(
   query: string,
@@ -153,13 +225,9 @@ export async function searchChunks(
 
   const distance = cosineDistance(chunks.embedding, embedding);
 
-  // Pool de candidats : on en récupère bien plus que `limit` pour laisser de
-  // la marge au re-ranking par feedback (un extrait avec 4.5/5 peut remonter
-  // de plusieurs positions).
-  const fetchLimit = Math.min(Math.max(limit * 6, limit), 60);
-  const primaryShortCode = intentPrimaryShortCode(intent);
+  const fetchLimit = Math.min(Math.max(limit * 8, 24), 80);
 
-  const baseQuery = db
+  const rows = await db
     .select({
       chunkId: chunks.id,
       articleNumber: chunks.articleNumber,
@@ -169,36 +237,54 @@ export async function searchChunks(
       sourceId: sources.id,
       sourceTitle: sources.title,
       sourceShortCode: sources.shortCode,
+      sourceType: sources.type,
     })
     .from(chunks)
-    .innerJoin(sources, eq(chunks.sourceId, sources.id));
-
-  const rows = primaryShortCode
-    ? await baseQuery
-        .where(eq(sources.shortCode, primaryShortCode))
-        .orderBy(distance)
-        .limit(fetchLimit)
-    : await baseQuery.orderBy(distance).limit(fetchLimit);
+    .innerJoin(sources, eq(chunks.sourceId, sources.id))
+    .orderBy(distance)
+    .limit(fetchLimit);
 
   if (rows.length === 0) return [];
 
-  // 1) Statistiques de notes sur tout le pool de candidats
   const ratingStats = await loadChunkRatingStats(rows.map((r) => r.chunkId));
 
-  // 2) Calcul du score final = similarité cosinus × multiplicateur bayésien
-  const rescored = rows.map((r) => {
-    const stats: ChunkRatingStats | undefined = ratingStats.get(r.chunkId);
-    const multiplier = bayesianMultiplier(stats);
-    const sourceBoost = intentSourceBoost(intent, r.sourceShortCode);
-    const similarity = Math.max(0, 1 - Number(r.distance));
-    const finalScore = similarity * multiplier * sourceBoost;
-    return { ...r, stats, multiplier, sourceBoost, finalScore };
-  });
+  const rescored = rows
+    .map((r) => {
+      const stats: ChunkRatingStats | undefined = ratingStats.get(r.chunkId);
+      const multiplier = bayesianMultiplier(stats);
+      const sourceBoost = intentSourceBoost(intent, r.sourceShortCode);
+      const typeBoost = corpusTypeBoost(trimmed, r.sourceType);
+      const similarity = Math.max(0, 1 - Number(r.distance));
+      const lexicalInput = {
+        content: r.content,
+        articleNumber: r.articleNumber,
+        articleLabel: r.articleLabel,
+        sourceShortCode: r.sourceShortCode,
+        sourceTitle: r.sourceTitle,
+      };
+      const lexical = lexicalRelevanceScore(trimmed, lexicalInput);
+      const tokenHits = tokenHitStatsForRow(trimmed, lexicalInput);
+      const tokenFactor =
+        tokenHits.total >= 2 ? 0.4 + 0.6 * tokenHits.coverage : 1;
+      const hybridSimilarity = similarity * (1 + lexical * 0.9) * tokenFactor;
+      const finalScore = hybridSimilarity * multiplier * sourceBoost * typeBoost;
+      return {
+        ...r,
+        stats,
+        multiplier,
+        sourceBoost,
+        lexical,
+        tokenHits,
+        similarity,
+        finalScore,
+      };
+    })
+    .filter((r) =>
+      passesRelevanceGate(r.similarity, r.lexical, r.tokenHits)
+    );
 
-  // 3) Tri descendant par score re-rangé
   rescored.sort((a, b) => b.finalScore - a.finalScore);
 
-  // 4) Dédoublonnage par article puis cap au `limit` demandé
   const seen = new Set<string>();
   const deduped: typeof rescored = [];
   for (const r of rescored) {
@@ -213,13 +299,14 @@ export async function searchChunks(
     chunkId: r.chunkId,
     articleNumber: r.articleNumber,
     articleLabel: r.articleLabel,
-    snippet: searchHitSnippet(r.content),
+    snippet: searchHitSnippetForQuery(r.content, trimmed),
     distance: Number(r.distance),
     relevancePercent: distanceToRelevancePercent(Number(r.distance)),
     source: {
       id: r.sourceId,
       title: r.sourceTitle,
       shortCode: r.sourceShortCode,
+      type: r.sourceType,
     },
     rating: {
       count: r.stats?.count ?? 0,

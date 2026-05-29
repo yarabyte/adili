@@ -28,7 +28,7 @@ export function AdminShell({
     counts.virements + counts.beta + counts.etudiants;
 
   return (
-    <div className="flex min-h-screen bg-brand-parchment">
+    <div className="adili-workspace flex min-h-screen bg-brand-parchment">
       {/* Sidebar desktop */}
       <aside className="hidden w-64 shrink-0 flex-col border-r border-brand-justice/10 bg-card lg:flex">
         <div className="flex h-16 items-center gap-3 border-b border-brand-justice/10 px-5">
@@ -38,20 +38,20 @@ export function AdminShell({
           <AdminNav counts={counts} />
         </div>
         <div className="border-t border-brand-justice/10 p-4">
-          <p className="truncate text-xs font-medium text-foreground">{email}</p>
-          <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <p className="truncate text-sm font-medium text-foreground">{email}</p>
+          <p className="mt-0.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             {role.replaceAll("_", " ")}
           </p>
           <Link
             href="/app"
-            className="mt-3 inline-flex text-xs font-medium text-brand-justice hover:underline"
+            className="mt-3 inline-flex text-sm font-medium text-brand-justice hover:underline"
           >
             ← Retour à l&apos;application
           </Link>
           <form action={signOut} className="mt-2">
             <button
               type="submit"
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-destructive hover:underline"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-destructive hover:underline"
             >
               <LogOut className="h-3.5 w-3.5" aria-hidden />
               Déconnexion
@@ -118,7 +118,7 @@ export function AdminShell({
                 </p>
                 <Link
                   href="/app"
-                  className="mt-3 inline-flex text-xs font-medium text-brand-justice hover:underline"
+                  className="mt-3 inline-flex text-sm font-medium text-brand-justice hover:underline"
                   onClick={() => setMobileOpen(false)}
                 >
                   ← Retour à l&apos;application
@@ -126,7 +126,7 @@ export function AdminShell({
                 <form action={signOut} className="mt-2">
                   <button
                     type="submit"
-                    className="inline-flex items-center gap-1.5 text-xs font-medium text-destructive hover:underline"
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-destructive hover:underline"
                   >
                     <LogOut className="h-3.5 w-3.5" aria-hidden />
                     Déconnexion

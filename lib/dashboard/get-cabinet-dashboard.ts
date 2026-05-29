@@ -12,6 +12,7 @@ import {
   affaires,
   clients,
   cabinets,
+  comptesRendus,
   documents,
   echeances,
   users,
@@ -21,6 +22,7 @@ import {
   type StatutDocument,
 } from "@/lib/constants/statuts";
 import { LABELS_DOCUMENTS } from "@/lib/constants/types-documents";
+import type { DecisionAction } from "@/lib/validation/compte-rendu";
 import { TYPES_ECHEANCE } from "@/lib/validation/echeances";
 
 export type DashboardKpis = {
@@ -73,6 +75,26 @@ export type CabinetDashboardData = {
   canValidateDocuments: boolean;
 };
 
+function parseCrUpcomingActions(
+  decisionsActions: unknown
+): Array<{ id: string; texte: string; deadline: Date; responsableId?: string }> {
+  if (!Array.isArray(decisionsActions)) return [];
+  const nowTs = Date.now();
+  const items: Array<{ id: string; texte: string; deadline: Date; responsableId?: string }> = [];
+  for (const raw of decisionsActions as DecisionAction[]) {
+    if (!raw || raw.type !== "action" || raw.fait || !raw.deadline) continue;
+    const d = new Date(raw.deadline);
+    if (Number.isNaN(d.getTime()) || d.getTime() < nowTs) continue;
+    items.push({
+      id: raw.id,
+      texte: raw.texte?.trim() || "Action de compte rendu",
+      deadline: d,
+      responsableId: raw.responsable_id,
+    });
+  }
+  return items;
+}
+
 function visibleAffairesCondition(session: CurrentProfile) {
   const cabinetId = session.profile!.cabinetId!;
   const explicitMember = exists(
@@ -111,6 +133,7 @@ export async function getCabinetDashboard(
     recentAffaireRows,
     recentlyOpened,
     upcomingRows,
+    crUpcomingRows,
     pendingDocRows,
     mesEcheancesRow,
     echeancesSemaineRow,
@@ -166,6 +189,27 @@ export async function getCabinetDashboard(
       )
       .orderBy(asc(echeances.dateEcheance))
       .limit(6),
+    db
+      .select({
+        compteRenduId: comptesRendus.id,
+        affaireId: comptesRendus.affaireId,
+        titreCr: comptesRendus.titre,
+        decisionsActions: comptesRendus.decisionsActions,
+        reference: affaires.reference,
+        intitule: affaires.intitule,
+      })
+      .from(comptesRendus)
+      .innerJoin(affaires, eq(comptesRendus.affaireId, affaires.id))
+      .where(
+        and(
+          visible,
+          sql`${comptesRendus.statut} <> 'rejete'`,
+          sql`jsonb_typeof(${comptesRendus.decisionsActions}) = 'array'`,
+          sql`jsonb_array_length(${comptesRendus.decisionsActions}) > 0`
+        )
+      )
+      .orderBy(desc(comptesRendus.updatedAt))
+      .limit(30),
     canValidateDocuments
       ? db
           .select({
@@ -241,6 +285,37 @@ export async function getCabinetDashboard(
     mesEcheances: Number(mesEcheancesRow[0]?.n ?? 0),
   };
 
+  const upcomingClassic = upcomingRows.map((r) => ({
+    id: r.id,
+    affaireId: r.affaireId,
+    affaireReference: r.reference,
+    affaireIntitule: r.intitule,
+    titre: r.titre,
+    dateEcheance: toDate(r.dateEcheance) ?? new Date(),
+    type:
+      r.type && (TYPES_ECHEANCE as readonly string[]).includes(r.type)
+        ? (r.type as (typeof TYPES_ECHEANCE)[number])
+        : null,
+    isMine: r.responsableId === session.user.id,
+  }));
+
+  const upcomingFromCr = crUpcomingRows.flatMap((row) =>
+    parseCrUpcomingActions(row.decisionsActions).map((action) => ({
+      id: `cr:${row.compteRenduId}:${action.id}`,
+      affaireId: row.affaireId,
+      affaireReference: row.reference,
+      affaireIntitule: row.intitule,
+      titre: `[CR] ${action.texte}`,
+      dateEcheance: action.deadline,
+      type: null,
+      isMine: action.responsableId === session.user.id,
+    }))
+  );
+
+  const upcomingMerged = [...upcomingClassic, ...upcomingFromCr]
+    .sort((a, b) => a.dateEcheance.getTime() - b.dateEcheance.getTime())
+    .slice(0, 6);
+
   return {
     cabinetName: cabinetRow[0]?.name ?? null,
     kpis,
@@ -253,19 +328,7 @@ export async function getCabinetDashboard(
       updatedAt: toDate(r.updatedAt) ?? new Date(),
     })),
     recentlyOpened,
-    upcomingEcheances: upcomingRows.map((r) => ({
-      id: r.id,
-      affaireId: r.affaireId,
-      affaireReference: r.reference,
-      affaireIntitule: r.intitule,
-      titre: r.titre,
-      dateEcheance: toDate(r.dateEcheance) ?? new Date(),
-      type:
-        r.type && (TYPES_ECHEANCE as readonly string[]).includes(r.type)
-          ? (r.type as (typeof TYPES_ECHEANCE)[number])
-          : null,
-      isMine: r.responsableId === session.user.id,
-    })),
+    upcomingEcheances: upcomingMerged,
     pendingDocuments: pendingDocRows.map((r) => ({
       id: r.id,
       affaireId: r.affaireId,
