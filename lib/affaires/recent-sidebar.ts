@@ -1,6 +1,6 @@
 import "server-only";
 
-import { desc, eq, inArray } from "drizzle-orm";
+import { desc, inArray } from "drizzle-orm";
 
 import { getRecentAffairesOpened } from "@/lib/affaires/recent-views";
 import type { CurrentProfile } from "@/lib/auth/profile";

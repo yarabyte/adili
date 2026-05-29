@@ -1,4 +1,5 @@
 import { ConfirmProvider } from "@/components/ui/confirm-provider";
+import type { RecentAffaireSidebarItem } from "@/lib/affaires/recent-sidebar";
 
 import { AppMain } from "./app-main";
 import { IdleSessionGuard } from "./idle-session-guard";

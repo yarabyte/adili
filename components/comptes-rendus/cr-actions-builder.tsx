@@ -23,7 +23,9 @@ function toDatetimeLocal(iso?: string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function normalizeActionReminder(item: DecisionAction): DecisionAction {
+function normalizeActionReminder(
+  item: Omit<DecisionAction, "rappelActif"> & Partial<Pick<DecisionAction, "rappelActif">>
+): DecisionAction {
   if (item.type !== "action") {
     return { ...item, rappelActif: false };
   }

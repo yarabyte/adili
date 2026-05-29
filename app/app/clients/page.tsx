@@ -20,7 +20,7 @@ export default async function ClientsPage() {
 
   const cabinetId = session.profile.cabinetId;
 
-  const [cabinet, rows] = await Promise.all([
+  const [[cabinet], rows] = await Promise.all([
     db
       .select({ ownerId: cabinets.ownerId })
       .from(cabinets)
