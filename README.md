@@ -29,6 +29,26 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
+## Analytics (maison intégrée)
+
+Collecte souveraine dans PostgreSQL + dashboard `/admin/analytics` (Tremor, polling 30 s, live Supabase Realtime).
+
+```bash
+npm run db:analytics
+```
+
+Variables : `ANALYTICS_ENABLED=true`, `NEXT_PUBLIC_ANALYTICS_ENABLED=true`.
+
+Crons (VPS) :
+
+```bash
+./scripts/cron-call.sh /api/cron/analytics/refresh-views   # */5 * * * *
+./scripts/cron-call.sh /api/cron/analytics/close-sessions   # */10 * * * *
+./scripts/cron-call.sh /api/cron/analytics/cleanup-old     # 0 3 * * 0
+```
+
+Pour le live : activer Realtime sur `analytics_events` dans Supabase (Database → Replication).
+
 ## Déploiement production (VPS AWS)
 
 Guide complet : [docs/deploy-vps-aws.md](docs/deploy-vps-aws.md) (Nginx, systemd, crons, variables d’environnement).

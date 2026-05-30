@@ -16,6 +16,8 @@ import {
   consumeSynthesisLimit,
   finalizeAiCall,
 } from "@/lib/ai/rate-limit";
+import { IA_EVENTS } from "@/lib/analytics/events";
+import { trackServerEvent } from "@/lib/analytics/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { checkAndConsumeQuota } from "@/lib/quotas/check-and-consume";
 import type { SearchHit } from "@/lib/search";
@@ -334,6 +336,28 @@ export async function POST(req: Request) {
             ...(lastError ? { error: lastError } : {}),
           },
         });
+        await trackServerEvent({
+          event_name: IA_EVENTS.AI_CALL,
+          event_category: "ia",
+          user_id: session.user.id,
+          cabinet_id: session.profile?.cabinetId ?? undefined,
+          properties: {
+            success: finalStatus === "ok",
+            feature: "recherche_synthese",
+            model: ANTHROPIC_MODEL,
+            tokens_in: tokensIn,
+            tokens_out: tokensOut,
+          },
+        });
+        if (finalStatus === "ok") {
+          await trackServerEvent({
+            event_name: IA_EVENTS.SYNTHESIS_GENERATED,
+            event_category: "ia",
+            user_id: session.user.id,
+            cabinet_id: session.profile?.cabinetId ?? undefined,
+            properties: { query_length: parsed.query.length },
+          });
+        }
         controller.close();
       }
     },

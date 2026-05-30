@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
 import { formatAuthError } from "@/lib/auth/messages";
+import { trackServerEvent } from "@/lib/analytics/server";
+import { AUTH_EVENTS, BUSINESS_EVENTS } from "@/lib/analytics/events";
 import { passwordRecoveryCallbackUrl } from "@/lib/auth/recovery";
 import { safeAuthRedirectPath } from "@/lib/auth/redirect";
 import { canFastPathToApp } from "@/lib/onboarding/fast-path";
@@ -37,8 +39,21 @@ export async function signIn(
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
+    await trackServerEvent({
+      event_name: AUTH_EVENTS.LOGIN_FAILED,
+      event_category: "auth",
+      properties: { reason: error.message },
+    });
     return { error: formatAuthError(error) };
   }
+
+  const session = await getCurrentProfile();
+  await trackServerEvent({
+    event_name: AUTH_EVENTS.LOGIN_SUCCEEDED,
+    event_category: "auth",
+    user_id: session?.user.id,
+    cabinet_id: session?.profile?.cabinetId ?? undefined,
+  });
 
   const rawRedirect = String(formData.get("redirect") ?? "").trim();
   const explicitDest = rawRedirect
@@ -49,7 +64,6 @@ export async function signIn(
     redirect(explicitDest);
   }
 
-  const session = await getCurrentProfile();
   if (session && (await canFastPathToApp(session))) {
     redirect(explicitDest ?? "/app");
   }
@@ -84,6 +98,12 @@ export async function signUp(
         "Vous devez accepter les conditions générales d'utilisation et la politique de confidentialité.",
     };
   }
+
+  await trackServerEvent({
+    event_name: BUSINESS_EVENTS.SIGNUP_STARTED,
+    event_category: "business",
+    properties: { plan },
+  });
 
   const supabase = createSupabaseServerClient();
   const origin =
@@ -122,6 +142,13 @@ export async function signUp(
           intendedPlan: plan,
         },
       });
+
+    await trackServerEvent({
+      event_name: BUSINESS_EVENTS.SIGNUP_COMPLETED,
+      event_category: "business",
+      user_id: data.user.id,
+      properties: { plan },
+    });
 
     revalidatePath("/", "layout");
     const session = await getCurrentProfile();

@@ -4,6 +4,8 @@ import { eq } from "drizzle-orm";
 import { activateSubscription } from "@/lib/billing/activate-subscription";
 import { PACK_IA_100 } from "@/lib/billing/constants";
 import { markInvoicePaid } from "@/lib/billing/invoices";
+import { BUSINESS_EVENTS } from "@/lib/analytics/events";
+import { trackServerEvent } from "@/lib/analytics/server";
 import { db } from "@/lib/db/client";
 import { packsAdditionnels, paiements } from "@/lib/db/schema";
 
@@ -59,4 +61,34 @@ export async function completePayment(paiementId: string): Promise<void> {
         .where(eq(packsAdditionnels.id, paiement.packId));
     }
   });
+
+  const [paid] = await db
+    .select()
+    .from(paiements)
+    .where(eq(paiements.id, paiementId))
+    .limit(1);
+
+  if (paid) {
+    await trackServerEvent({
+      event_name: BUSINESS_EVENTS.PAYMENT_COMPLETED,
+      event_category: "payment",
+      user_id: paid.userId ?? undefined,
+      cabinet_id: paid.cabinetId ?? undefined,
+      properties: {
+        amount_fcfa: paid.montantFcfa,
+        payment_id: paid.id,
+        subscription_id: paid.subscriptionId,
+      },
+    });
+
+    if (paid.subscriptionId) {
+      await trackServerEvent({
+        event_name: BUSINESS_EVENTS.SUBSCRIPTION_CREATED,
+        event_category: "business",
+        user_id: paid.userId ?? undefined,
+        cabinet_id: paid.cabinetId ?? undefined,
+        properties: { subscription_id: paid.subscriptionId },
+      });
+    }
+  }
 }

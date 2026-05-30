@@ -42,6 +42,12 @@ export const ADMIN_PERMISSIONS = {
   "beta_application.decide": ["super_admin", "admin_support"],
   "etudiant_validation.decide": ["super_admin", "admin_support"],
   "lead_grand_cabinet.traiter": ["super_admin", "admin_support"],
+  "analytics.view": [
+    "super_admin",
+    "admin_facturation",
+    "admin_support",
+    "admin_readonly",
+  ],
 } as const;
 
 export type AdminPermission = keyof typeof ADMIN_PERMISSIONS;

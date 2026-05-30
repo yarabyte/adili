@@ -4,6 +4,7 @@ import {
   date,
   index,
   integer,
+  bigint,
   jsonb,
   numeric,
   pgEnum,
@@ -787,3 +788,82 @@ export const auditLogRelations = relations(auditLog, ({ one }) => ({
   }),
   user: one(users, { fields: [auditLog.userId], references: [users.id] }),
 }));
+
+// ═══════════════════ ANALYTICS ═══════════════════
+export const analyticsEvents = pgTable(
+  'analytics_events',
+  {
+    id: bigint('id', { mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+    eventName: text('event_name').notNull(),
+    eventCategory: text('event_category').notNull(),
+    visitorId: text('visitor_id').notNull(),
+    sessionId: text('session_id').notNull(),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+    cabinetId: uuid('cabinet_id').references(() => cabinets.id, { onDelete: 'set null' }),
+    url: text('url'),
+    path: text('path'),
+    referrer: text('referrer'),
+    utmSource: text('utm_source'),
+    utmMedium: text('utm_medium'),
+    utmCampaign: text('utm_campaign'),
+    userAgent: text('user_agent'),
+    browser: text('browser'),
+    browserVersion: text('browser_version'),
+    os: text('os'),
+    deviceType: text('device_type'),
+    screenResolution: text('screen_resolution'),
+    ipAnonymized: text('ip_anonymized'),
+    country: text('country'),
+    region: text('region'),
+    city: text('city'),
+    properties: jsonb('properties').notNull().default({}),
+    durationMs: integer('duration_ms'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    createdIdx: index('idx_analytics_events_created').on(t.createdAt),
+    nameCreatedIdx: index('idx_analytics_events_name_created').on(t.eventName, t.createdAt),
+    sessionIdx: index('idx_analytics_events_session').on(t.sessionId),
+  })
+);
+
+export const analyticsSessions = pgTable(
+  'analytics_sessions',
+  {
+    id: text('id').primaryKey(),
+    visitorId: text('visitor_id').notNull(),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+    startedAt: timestamp('started_at', { withTimezone: true }).notNull(),
+    endedAt: timestamp('ended_at', { withTimezone: true }),
+    durationSeconds: integer('duration_seconds'),
+    entryPage: text('entry_page').notNull(),
+    entryReferrer: text('entry_referrer'),
+    entryUtmSource: text('entry_utm_source'),
+    entryUtmMedium: text('entry_utm_medium'),
+    entryUtmCampaign: text('entry_utm_campaign'),
+    exitPage: text('exit_page'),
+    pageViewsCount: integer('page_views_count').notNull().default(0),
+    eventsCount: integer('events_count').notNull().default(0),
+    country: text('country'),
+    city: text('city'),
+    deviceType: text('device_type'),
+    browser: text('browser'),
+    isBounce: boolean('is_bounce').notNull().default(false),
+    isConverted: boolean('is_converted').notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    visitorIdx: index('idx_analytics_sessions_visitor').on(t.visitorId, t.startedAt),
+    datesIdx: index('idx_analytics_sessions_dates').on(t.startedAt),
+  })
+);
+
+export const analyticsFunnels = pgTable('analytics_funnels', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull().unique(),
+  description: text('description'),
+  steps: jsonb('steps').notNull().default([]),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});

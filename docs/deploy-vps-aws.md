@@ -110,6 +110,10 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ...
 
 NEXT_PUBLIC_SITE_URL=https://adili.cloud
 
+# Google Tag Manager ou GA4 — /app et /admin exclus des pageviews SPA
+# NEXT_PUBLIC_GTM_ID=GTM-XXXXXXX
+# NEXT_PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXXXXX
+
 ANTHROPIC_API_KEY=sk-ant-...
 VOYAGE_API_KEY=pa-...
 

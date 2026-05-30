@@ -19,6 +19,7 @@
     "db:fix-auth-user": "tsx scripts/db-apply-sql.ts lib/db/sql/0016_fix_auth_user_upsert.sql",
     "db:storage-etudiants": "tsx scripts/db-apply-sql.ts lib/db/sql/0017_storage_etudiants.sql",
     "db:perf-indexes": "tsx scripts/db-apply-sql.ts lib/db/sql/0018_perf_indexes.sql",
+    "db:analytics": "tsx scripts/db-apply-sql.ts lib/db/sql/0019_analytics.sql",
     "db:rls": "tsx scripts/db-apply-sql.ts lib/db/sql/0002_rls.sql",
     "db:ai-calls": "tsx scripts/db-apply-sql.ts lib/db/sql/0003_ai_calls.sql",
     "db:ratings": "tsx scripts/db-apply-sql.ts lib/db/sql/0004_search_ratings.sql",
@@ -54,6 +55,7 @@
     "@tiptap/extension-placeholder": "^3.23.1",
     "@tiptap/react": "^3.23.1",
     "@tiptap/starter-kit": "^3.23.1",
+    "@tremor/react": "^3.18.7",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
@@ -70,7 +72,9 @@
     "react": "^18",
     "react-dom": "^18",
     "react-hook-form": "^7.75.0",
+    "swr": "^2.4.1",
     "tailwind-merge": "^3.6.0",
+    "ua-parser-js": "^2.0.10",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -78,6 +82,7 @@
     "@types/nodemailer": "^8.0.0",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@types/ua-parser-js": "^0.7.39",
     "autoprefixer": "^10.5.0",
     "drizzle-kit": "^0.31.10",
     "eslint": "^8",

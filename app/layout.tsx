@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, DM_Sans } from "next/font/google";
 import "./globals.css";
+import { AnalyticsProvider } from "@/components/analytics/analytics-provider";
 import { NavigationProgress } from "@/components/navigation-progress";
 import { cn } from "@/lib/utils";
 
@@ -44,8 +45,10 @@ export default function RootLayout({
       )}
     >
       <body className="antialiased">
-        <NavigationProgress />
-        {children}
+        <AnalyticsProvider>
+          <NavigationProgress />
+          {children}
+        </AnalyticsProvider>
       </body>
     </html>
   );
