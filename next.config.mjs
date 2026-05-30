@@ -19,7 +19,7 @@ const nextConfig = {
     ],
   },
   experimental: {
-    optimizePackageImports: ["lucide-react"],
+    optimizePackageImports: ["lucide-react", "@tremor/react"],
     serverComponentsExternalPackages: ["puppeteer"],
   },
 };

@@ -402,6 +402,7 @@ sudo systemctl restart adili
 | Migrations échouent | Utiliser URI directe `:5432` pour `npm run db:*`, pas 6543 |
 | OAuth redirect invalide | URLs dans Supabase Auth = `NEXT_PUBLIC_SITE_URL` |
 | Synthèse coupée | Augmenter `proxy_read_timeout` sur `/api/search/synthesize` |
+| `Can't resolve '@tremor/react'` ou `'swr'` au build | Après `git pull`, exécuter **`npm ci`** (pas seulement `npm run build`). Vérifier que `package-lock.json` est à jour (`git log -1 package.json`). |
 
 ---
 
